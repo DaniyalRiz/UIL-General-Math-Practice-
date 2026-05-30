@@ -2,11 +2,11 @@
 
 A practice platform for UIL General Mathematics competitors with topic filtering, timed practice, instant feedback, and performance analytics.
 
-## Live Website
+# Live Website
 
 https://daniyalriz.github.io/UIL-General-Math-Practice-/
 
-## Features
+# Features
 
 - Practice real UIL General Mathematics problems
 - Filter by topic
@@ -26,7 +26,7 @@ https://daniyalriz.github.io/UIL-General-Math-Practice-/
 - Accuracy by topic
 - Dark mode
 
-## Future Features
+# Future Features
 
 - UIL test simulation mode
 - AI-powered explanations
@@ -35,6 +35,6 @@ https://daniyalriz.github.io/UIL-General-Math-Practice-/
 - User accounts and progress tracking
 - Mobile optimization
 
-## Purpose
+# Purpose
 
 This project is designed to help UIL Mathematics competitors quickly identify common problem types, improve accuracy, and increase problem-solving speed under timed conditions.
