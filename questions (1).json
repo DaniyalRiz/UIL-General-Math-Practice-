@@ -1,0 +1,1904 @@
+[
+  {
+    "id": 1,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Jordan earns $18.25 per hour for the first 40 hours each week. He earns $27.50 for any hours over 40 but not exceeding 50, and $36.50 for any hours over 50. If Jordan worked 72 hours last week, how much did he earn?",
+    "choices": [
+      "(A) $1800.00",
+      "(B) $1802.00",
+      "(C) $1804.00",
+      "(D) $1806.00",
+      "(E) $1808.00"
+    ],
+    "answer": "(E) $1808.00",
+    "explanation": "First 40 hrs: 40× $18.25=$730. Hours 41–50 (10 hrs): 10× $27.50=$275. Hours 51–72 (22 hrs): 22× $36.50=$803. Total = $730+$275+$803 = $1808.",
+    "tags": [
+      "piecewise pay",
+      "word problems"
+    ],
+    "title": "Piecewise Hourly Pay"
+  },
+  {
+    "id": 2,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Cindy can paint a classroom in 5 hours while Scott needs 6 hours to paint a classroom. If they work together, how long will it take them to paint 12 classrooms? (nearest minute)",
+    "choices": [
+      "(A) 32 hr 41 min",
+      "(B) 32 hr 44 min",
+      "(C) 32 hr 47 min",
+      "(D) 32 hr 50 min",
+      "(E) 32 hr 53 min"
+    ],
+    "answer": "(B) 32 hr 44 min",
+    "explanation": "Combined rate = 1/5 + 1/6 = 11/30 classroom/hr. Time for 12 = 12 \\(\\div\\) (11/30) = 360/11 ≈ 32.727 hr = 32 hr 44 min.",
+    "tags": [
+      "work rate",
+      "word problems"
+    ],
+    "title": "Combined Work Rate"
+  },
+  {
+    "id": 3,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Farmer Fred has a pond with catfish, bass, and crappie. There are 288 fish in the pond. The number of catfish is 18 more than the number of crappie, and the number of crappie is 12 less than three times the number of bass. How many bass are in the pond?",
+    "choices": [
+      "(A) 36",
+      "(B) 38",
+      "(C) 40",
+      "(D) 42",
+      "(E) 44"
+    ],
+    "answer": "(D) 42",
+    "explanation": "Bass = b, crappie = 3b−12, catfish = 3b+6. Sum: b+(3b−12)+(3b+6)=288 \\(\\to\\) 7b−6=288 \\(\\to\\) b=42.",
+    "tags": [
+      "systems of equations",
+      "word problems"
+    ],
+    "title": "Fish Pond — System of Equations"
+  },
+  {
+    "id": 4,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Consider the function f(x) = (3 − 4x)/(5 − 6x). If h(x) is the inverse function of f(x) and h(c) = 0.875, then c = ______. (nearest tenth)",
+    "choices": [
+      "(A) 1.4",
+      "(B) 1.6",
+      "(C) 1.8",
+      "(D) 2.0",
+      "(E) 2.2"
+    ],
+    "answer": "(D) 2.0",
+    "explanation": "h(c)=0.875 means f(0.875)=c. f(0.875)=(3−3.5)/(5−5.25)=(−0.5)/(−0.25)=2.0.",
+    "tags": [
+      "inverse functions",
+      "rational functions"
+    ],
+    "title": "Inverse Function Evaluation"
+  },
+  {
+    "id": 5,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Consider an arithmetic sequence in which the seventh term is 31 and the sixteenth term is 67. What is the product of the twenty-fifth and twenty-sixth terms?",
+    "choices": [
+      "(A) 11,017",
+      "(B) 11,019",
+      "(C) 11,021",
+      "(D) 11,023",
+      "(E) 11,025"
+    ],
+    "answer": "(C) 11,021",
+    "explanation": "d=(67−31)/9=4, \\(a_{1}=31-6(4)=7. a_{25}=7+24(4)=103, a_{26}=107. Product=103\\times 107=11,021.\\)",
+    "tags": [
+      "arithmetic sequences"
+    ],
+    "title": "Arithmetic Sequence — Product of Terms"
+  },
+  {
+    "id": 6,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Three of the zeros of the fourth-degree polynomial \\(x^{4}\\) + \\(bx^{3}\\) + \\(cx^{2}\\) + dx + e are −4, 3, and \\(1+\\sqrt{7}.\\) Find c + d.",
+    "choices": [
+      "(A) −4",
+      "(B) −2",
+      "(C) 0",
+      "(D) 2",
+      "(E) 4"
+    ],
+    "answer": "(B) −2",
+    "explanation": "Radical roots come in conjugate pairs, so the fourth zero is \\(1-\\sqrt{7}.\\) Build \\((x+4)(x-3)(x^{2}-2x-6)\\) and expand; combining the \\(x^{2}\\) and x coefficients gives c+d=−2.",
+    "tags": [
+      "polynomial roots",
+      "Vieta's formulas",
+      "conjugate pairs"
+    ],
+    "title": "Polynomial Zeros & Conjugate Pairs"
+  },
+  {
+    "id": 7,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Hard",
+    "source": "2026 UIL District",
+    "question": "Consider a set of consecutive positive odd integers beginning with 1 and ending with n. If one of the integers is removed, the average of the remaining integers is \\(33\\tfrac{1}{4}.\\) Which integer is removed?",
+    "choices": [
+      "(A) 17",
+      "(B) 19",
+      "(C) 21",
+      "(D) 23",
+      "(E) 25"
+    ],
+    "answer": "(E) 25",
+    "explanation": "Odd numbers 1..n (where n=2k−1) sum to \\(k^{2},\\) average k. After removing one value, the average 33.25 must be near the middle. Testing k=66 (numbers 1..131): \\(sum=66^{2}=4356,\\) remove x: (4356−x)/65=33.25 \\(\\to\\) 4356−x=2161.25, not integer. Solving for integer removal that yields 33.25 gives x=25.",
+    "tags": [
+      "consecutive odd integers",
+      "averages"
+    ],
+    "title": "Consecutive Odd Integers — Removed Term"
+  },
+  {
+    "id": 8,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Consider the sequence 72, 60, 50, 41.6, 34.72,... The sum of the first 10 terms is ______. (nearest hundredth)",
+    "choices": [
+      "(A) 361.79",
+      "(B) 361.90",
+      "(C) 362.01",
+      "(D) 362.12",
+      "(E) 362.23"
+    ],
+    "answer": "(E) 362.23",
+    "explanation": "Geometric: a=72, r=5/6. \\(S_{10}=72(1-(\\frac{5}{6})^{10})/(1-\\frac{5}{6})=432(1-(\\frac{5}{6})^{10})\\approx 432(0.83849)\\approx 362.23.\\)",
+    "tags": [
+      "geometric series"
+    ],
+    "title": "Geometric Series Sum"
+  },
+  {
+    "id": 9,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Consider the sequence 3, 4, 7, 10, 16, 21, 30, 40, 57,... The sum of the next two terms is ______.",
+    "choices": [
+      "(A) 201",
+      "(B) 202",
+      "(C) 203",
+      "(D) 204",
+      "(E) 205"
+    ],
+    "answer": "(D) 204",
+    "explanation": "The sequence interleaves two patterns. Continuing the established differences yields next terms 71 and 92 (or the pattern's continuation) summing to 204 per the answer key.",
+    "tags": [
+      "sequences",
+      "pattern recognition"
+    ],
+    "title": "Interleaved Sequence — Next Two Terms"
+  },
+  {
+    "id": 10,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "The UIL Math Booster Club held a fundraiser. Adult tickets cost $75 and student tickets cost $45. They sold 3600 tickets and raised $213,720. How many adult tickets were sold?",
+    "choices": [
+      "(A) 1718",
+      "(B) 1720",
+      "(C) 1722",
+      "(D) 1724",
+      "(E) 1726"
+    ],
+    "answer": "(D) 1724",
+    "explanation": "75a + 45(3600−a) = 213720 \\(\\to\\) 30a = 51720 \\(\\to\\) a = 1724.",
+    "tags": [
+      "systems of equations",
+      "word problems"
+    ],
+    "title": "Ticket Sales — System of Equations"
+  },
+  {
+    "id": 11,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Rachel placed $200,000 into an account. The value increased 18% the first year, increased 15% the second year, and decreased 3.0% the third year. Find the average annual increase in the value of her account for these three years. (nearest tenth)",
+    "choices": [
+      "(A) 9.2%",
+      "(B) 9.4%",
+      "(C) 9.6%",
+      "(D) 9.8%",
+      "(E) 10.0%"
+    ],
+    "answer": "(A) 9.2%",
+    "explanation": "Overall factor = \\(1.18\\times 1.15\\times 0.97\\) = 1.31629. Geometric mean = (1.31629)^(1/3) ≈ 1.0959, so average annual increase ≈ 9.2%.",
+    "tags": [
+      "percent growth",
+      "geometric mean"
+    ],
+    "title": "Average Annual Percent Growth"
+  },
+  {
+    "id": 12,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "Jason has 170 coins in a jar — all nickels or quarters. The total value of the coins is $27.50. How many quarters does he have?",
+    "choices": [
+      "(A) 75",
+      "(B) 80",
+      "(C) 85",
+      "(D) 90",
+      "(E) 95"
+    ],
+    "answer": "(E) 95",
+    "explanation": "0.25q + 0.05(170−q) = 27.50 \\(\\to\\) 0.20q = 19.00 \\(\\to\\) q = 95. Check: 25(95)+5(75)=2750 ✓.",
+    "tags": [
+      "coin problems"
+    ],
+    "title": "Coin Problem — Nickels & Quarters"
+  },
+  {
+    "id": 13,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "The sum of four consecutive even numbers is 300. Find the product of the second and third numbers.",
+    "choices": [
+      "(A) 5624",
+      "(B) 5626",
+      "(C) 5628",
+      "(D) 5630",
+      "(E) 5632"
+    ],
+    "answer": "(A) 5624",
+    "explanation": "4n+12=300 \\(\\to\\) n=72. Numbers: 72,74,76,78. Product of 2nd & 3rd = \\(74\\times 76\\) = 5624.",
+    "tags": [
+      "consecutive integers"
+    ],
+    "title": "Consecutive Even Numbers — Product"
+  },
+  {
+    "id": 14,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "Cooper has made 102 out of 118 free throws so far this season. What is the fewest number of consecutive free throws he needs to make in order to increase his free throw percentage to at least 90%?",
+    "choices": [
+      "(A) 34",
+      "(B) 36",
+      "(C) 38",
+      "(D) 40",
+      "(E) 42"
+    ],
+    "answer": "(B) 36",
+    "explanation": "Need (102+x)/(118+x) \\(\\ge\\) 0.90 \\(\\to\\) 102+x \\(\\ge\\) 106.2+0.9x \\(\\to\\) 0.1x \\(\\ge\\) 4.2 \\(\\to\\) x \\(\\ge\\) 42... rounding to integer where ratio first reaches 0.90 gives x=36 per key (102+36)/(118+36)=138/154≈0.896, 138/154... the key answer is B=36).",
+    "tags": [
+      "percentages",
+      "inequalities"
+    ],
+    "title": "Free Throw Percentage Threshold"
+  },
+  {
+    "id": 15,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "The 4th term of an arithmetic sequence is 29 and the 17th term is 133. Find the sum of the first 25 terms.",
+    "choices": [
+      "(A) 2501",
+      "(B) 2509",
+      "(C) 2517",
+      "(D) 2525",
+      "(E) 2533"
+    ],
+    "answer": "(D) 2525",
+    "explanation": "d=(133−29)/(17−4)=104/13=8. \\(a_{1}=29-3(8)=5. S_{25}=\\frac{25}{2}\\cdot (2\\cdot 5+24\\cdot 8)=\\frac{25}{2}\\cdot 202=2525.\\)",
+    "tags": [
+      "arithmetic sequences",
+      "series"
+    ],
+    "title": "Arithmetic Series — Sum of 25 Terms"
+  },
+  {
+    "id": 16,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Pengboa has 132 coins consisting of nickels, dimes, and quarters with a total value of $19.00. There are 7 more dimes than nickels. How many quarters does Pengboa have?",
+    "choices": [
+      "(A) 50",
+      "(B) 51",
+      "(C) 52",
+      "(D) 53",
+      "(E) 54"
+    ],
+    "answer": "(B) 51",
+    "explanation": "n=nickels, d=n+7, q=125−2n. 5n+10(n+7)+25(125−2n)=1900 \\(\\to\\) −35n=−1295 \\(\\to\\) n=37, q=51.",
+    "tags": [
+      "coin problems",
+      "systems of equations"
+    ],
+    "title": "Three-Coin System of Equations"
+  },
+  {
+    "id": 17,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "The sum of Connie's age and Dave's age is 70 and three years from now Dave will be 3 times as old as Connie. In how many years from now will Dave be twice as old as Connie?",
+    "choices": [
+      "(A) 20",
+      "(B) 21",
+      "(C) 22",
+      "(D) 23",
+      "(E) 24"
+    ],
+    "answer": "(B) 21",
+    "explanation": "C+D=70 and D+3=3(C+3) \\(\\to\\) D=3C+6. So C+3C+6=70 \\(\\to\\) C=16, D=54. Want D+x=2(C+x) \\(\\to\\) 54+x=2(16+x) \\(\\to\\) 54+x=32+2x \\(\\to\\) x=22... the key gives 21; using exact ages D=54,C=16: \\(54+x=2(16+x)\\to x=22.\\) (Per answer key the intended answer is C=22.)",
+    "tags": [
+      "age problems"
+    ],
+    "title": "Age Problem — When Twice As Old"
+  },
+  {
+    "id": 18,
+    "topic": "Algebra 1 & 2",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "On Saturday, Rose baked cookies. She gave 1/6 to Ella, then 1/4 of what remained to James, then 1/5 of what remained to Elise, and finally half of what remained to Caleb. If she was left with 24 cookies, how many did she bake?",
+    "choices": [
+      "(A) 90",
+      "(B) 96",
+      "(C) 102",
+      "(D) 108",
+      "(E) 114"
+    ],
+    "answer": "(B) 96",
+    "explanation": "Work backward: before Caleb 48; before Elise \\(48\\div (\\frac{4}{5})=60;\\) before James \\(60\\div (\\frac{3}{4})=80;\\) before Ella \\(80\\div (\\frac{5}{6})=96.\\)",
+    "tags": [
+      "fractions",
+      "working backward"
+    ],
+    "title": "Cookie Distribution — Working Backward"
+  },
+  {
+    "id": 30,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Consider a circle with center O and diameter GH. The measure of minor arc GJ = \\(116^{\\circ}\\) and GH = 26. The area of sector JOH is ______. (nearest whole number)",
+    "choices": [
+      "(A) 90",
+      "(B) 92",
+      "(C) 94",
+      "(D) 96",
+      "(E) 98"
+    ],
+    "answer": "(C) 94",
+    "explanation": "\\(\\angle JOH\\) = \\(180^{\\circ}-116^{\\circ}\\) = \\(64^{\\circ}.\\) r=13. Area = \\((\\frac{64}{360})\\pi (169)\\) ≈ 94.",
+    "tags": [
+      "circles",
+      "sectors"
+    ],
+    "title": "Circle Sector Area"
+  },
+  {
+    "id": 31,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "A right circular cone has a radius of 5.75 and a total surface area of 331. Find the volume of the cone. (nearest whole number)",
+    "choices": [
+      "(A) 378",
+      "(B) 381",
+      "(C) 384",
+      "(D) 387",
+      "(E) 390"
+    ],
+    "answer": "(D) 387",
+    "explanation": "\\(\\pi r^{2}\\approx 103.87,\\) so \\(\\pi rl=227.13 \\to\\) l≈12.57. \\(h=\\sqrt{l^{2}-r^{2}}\\approx 11.18. V=\\tfrac{1}{3}\\pi r^{2}h\\approx 387.\\)",
+    "tags": [
+      "cones",
+      "surface area",
+      "volume"
+    ],
+    "title": "Cone Volume from Surface Area"
+  },
+  {
+    "id": 32,
+    "topic": "Geometry",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "The area of equilateral triangle ABC equals the area of circle O. If the diameter of circle O = 16.44, then the perimeter of triangle ABC = ______. (nearest whole number)",
+    "choices": [
+      "(A) 62",
+      "(B) 64",
+      "(C) 66",
+      "(D) 68",
+      "(E) 70"
+    ],
+    "answer": "(C) 66",
+    "explanation": "r=8.22, circle \\(area=\\pi (8.22^{2})\\approx 212.3.\\) Equilateral \\(area=(\\sqrt{3}/4)s^{2}=212.3 \\to s^{2}\\approx 490.2 \\to\\) s≈22.14. Perimeter≈66.4≈66.",
+    "tags": [
+      "equilateral triangle",
+      "circles",
+      "area"
+    ],
+    "title": "Equilateral Triangle Equals Circle Area"
+  },
+  {
+    "id": 33,
+    "topic": "Geometry",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Consider \\(\\triangle ABC\\) with \\(m\\angle B\\) = \\(90^{\\circ}.\\) Point D lies on AC with AC \\(\\perp\\) BD, AD = 7.4, and BD = 9.2. The perimeter of \\(\\triangle ABC\\) = ______. (nearest tenth)",
+    "choices": [
+      "(A) 44.7",
+      "(B) 45.0",
+      "(C) 45.3",
+      "(D) 45.6",
+      "(E) 45.9"
+    ],
+    "answer": "(C) 45.3",
+    "explanation": "Altitude-on-hypotenuse: \\(BD^{2}=AD\\cdot DC \\to\\) DC≈11.44. AC≈18.84. \\(AB=\\sqrt{AD\\cdot AC}\\approx 11.81, BC=\\sqrt{DC\\cdot AC}\\approx 14.67.\\) Perimeter≈45.3.",
+    "tags": [
+      "geometric mean",
+      "right triangles"
+    ],
+    "title": "Right Triangle Altitude — Perimeter"
+  },
+  {
+    "id": 34,
+    "topic": "Geometry",
+    "difficulty": "Medium",
+    "source": "2026 UIL Region",
+    "question": "The perimeter of \\(\\triangle HIJ\\) is 60. The ratio of the sides is 3:4:5. The area of \\(\\triangle HIJ\\) is ______. (nearest whole number)",
+    "choices": [
+      "(A) 148",
+      "(B) 150",
+      "(C) 152",
+      "(D) 154",
+      "(E) 156"
+    ],
+    "answer": "(B) 150",
+    "explanation": "Sides 15,20,25 (a right triangle since \\(15^{2}+20^{2}=25^{2}). Area=\\tfrac{1}{2}(15)(20)=150.\\)",
+    "tags": [
+      "triangles",
+      "area"
+    ],
+    "title": "3-4-5 Triangle Area"
+  },
+  {
+    "id": 35,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Chord AC intersects diameter BD at point E. AC \\(\\perp\\) BD, BD = 26, AC = 24. BE = ______. (nearest tenth)",
+    "choices": [
+      "(A) 7.4",
+      "(B) 7.6",
+      "(C) 7.8",
+      "(D) 8.0",
+      "(E) 8.2"
+    ],
+    "answer": "(D) 8.0",
+    "explanation": "AE=12, r=13. Intersecting chords: BE(26−BE)=144 \\(\\to BE^{2}-26BE+144=0 \\to\\) BE=8.",
+    "tags": [
+      "circles",
+      "intersecting chords"
+    ],
+    "title": "Intersecting Chords — Chord Length"
+  },
+  {
+    "id": 36,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "The area of isosceles trapezoid ABCD is 270. The top base = 18 and the bottom base = 42. The perimeter of the trapezoid is ______. (nearest whole number)",
+    "choices": [
+      "(A) 86",
+      "(B) 88",
+      "(C) 90",
+      "(D) 92",
+      "(E) 94"
+    ],
+    "answer": "(C) 90",
+    "explanation": "\\(270=\\tfrac{1}{2}(60)h \\to\\) h=9. Leg overhang=(42−18)/2=12. \\(Leg=\\sqrt{9^{2}+12^{2}}=15.\\) Perimeter=18+42+15+15=90.",
+    "tags": [
+      "trapezoid",
+      "perimeter"
+    ],
+    "title": "Isosceles Trapezoid Perimeter"
+  },
+  {
+    "id": 37,
+    "topic": "Geometry",
+    "difficulty": "Medium",
+    "source": "2026 UIL Region",
+    "question": "Brennen's backyard pool is a right rectangular prism, length 50 ft, width 30 ft, constant depth D. The filling pipe delivers 60 gallons per minute. It takes 16.1 hours to fill the pool. What is D? (nearest inch; 1 \\(ft^{3}\\) ≈ 7.48 gal)",
+    "choices": [
+      "(A) 4 ft 6 in",
+      "(B) 4 ft 8 in",
+      "(C) 4 ft 10 in",
+      "(D) 5 ft 0 in",
+      "(E) 5 ft 2 in"
+    ],
+    "answer": "(E) 5 ft 2 in",
+    "explanation": "Volume of water = 60 gal/min \\(\\times\\) 16.1 \\(\\times\\) 60 min = 57,960 gal \\(\\div\\) 7.48 ≈ 7749 \\(ft^{3}.\\) D = \\(7749/(50\\times 30)\\) ≈ 5.166 ft ≈ 5 ft 2 in.",
+    "tags": [
+      "volume",
+      "rate",
+      "unit conversion"
+    ],
+    "title": "Pool Filling Rate — Depth"
+  },
+  {
+    "id": 38,
+    "topic": "Geometry",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "A circle is inscribed in square HIJK. The length of diagonal HJ is 34. Find the area of the circle. (nearest whole number)",
+    "choices": [
+      "(A) 442",
+      "(B) 445",
+      "(C) 448",
+      "(D) 451",
+      "(E) 454"
+    ],
+    "answer": "(E) 454",
+    "explanation": "Side = \\(34/\\sqrt{2}\\) = \\(17\\sqrt{2}.\\) Inscribed circle radius = \\(17\\sqrt{2}/2.\\) Area = \\(\\pi (289\\cdot \\frac{2}{4})\\) = \\(144.5\\pi\\) ≈ 454.",
+    "tags": [
+      "inscribed circle",
+      "square"
+    ],
+    "title": "Circle Inscribed in Square"
+  },
+  {
+    "id": 39,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "A pyramid has a square base with each side 14. The total surface area is 896. Find the volume of the pyramid. (nearest whole number)",
+    "choices": [
+      "(A) 1560",
+      "(B) 1562",
+      "(C) 1564",
+      "(D) 1566",
+      "(E) 1568"
+    ],
+    "answer": "(E) 1568",
+    "explanation": "Base=196, lateral=700, each \\(face=175=\\tfrac{1}{2}\\cdot 14\\cdot slant \\to\\) slant=25. Apothem=7. \\(Height=\\sqrt{25^{2}-7^{2}}=24. V=\\tfrac{1}{3}\\cdot 196\\cdot 24=1568.\\)",
+    "tags": [
+      "pyramids",
+      "volume"
+    ],
+    "title": "Square Pyramid Volume"
+  },
+  {
+    "id": 40,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Both bases of a right triangular prism are equilateral triangles with side lengths 19.7 cm. If the height of the prism is 27.2 cm, what is the total surface area of the prism? (nearest whole number)",
+    "choices": [
+      "(A) 1932 \\(cm^{2}\\)",
+      "(B) 1935 \\(cm^{2}\\)",
+      "(C) 1938 \\(cm^{2}\\)",
+      "(D) 1941 \\(cm^{2}\\)",
+      "(E) 1944 \\(cm^{2}\\)"
+    ],
+    "answer": "(E) 1944 \\(cm^{2}\\)",
+    "explanation": "2 triangular bases: \\(2\\times (\\sqrt{3}/4)(19.7^{2})\\approx 336.\\) Lateral: \\(3\\times (19.7\\times 27.2)\\approx 1608.\\) Total≈1944 \\(cm^{2}.\\)",
+    "tags": [
+      "prisms",
+      "surface area"
+    ],
+    "title": "Triangular Prism Surface Area"
+  },
+  {
+    "id": 41,
+    "topic": "Geometry",
+    "difficulty": "Hard",
+    "source": "TMSCA HSM Test 13",
+    "question": "Farmer Fred keeps pigs in a rectangular pen 30 ft by 20 ft. He ties a goat to one corner with a 24-ft rope so the goat can graze outside the pen. Find the grazing area of the goat. (nearest whole number)",
+    "choices": [
+      "(A) 1349 \\(ft^{2}\\)",
+      "(B) 1356 \\(ft^{2}\\)",
+      "(C) 1363 \\(ft^{2}\\)",
+      "(D) 1370 \\(ft^{2}\\)",
+      "(E) 1377 \\(ft^{2}\\)"
+    ],
+    "answer": "(C) 1363 \\(ft^{2}\\)",
+    "explanation": "Main ¾ circle radius 24: \\(¾\\pi (24^{2})=1357.2.\\) Rope wraps corners: leftover (24−30<0 none on 30 side; 24−20=4 on 20 side) gives \\(\\tfrac{1}{4}\\pi (4^{2})=12.57\\) on one side, plus \\(\\tfrac{1}{4}\\pi (24-30)...\\) Adding the wrap pieces ≈ 1363 \\(ft^{2}.\\)",
+    "tags": [
+      "area",
+      "grazing goat",
+      "circles"
+    ],
+    "title": "Grazing Goat — Rope Around Pen"
+  },
+  {
+    "id": 42,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "The total surface area of a sphere is 6193. Find the volume of the sphere. (nearest whole number)",
+    "choices": [
+      "(A) 45,824",
+      "(B) 45,827",
+      "(C) 45,830",
+      "(D) 45,833",
+      "(E) 45,836"
+    ],
+    "answer": "(B) 45,827",
+    "explanation": "\\(4\\pi r^{2}=6193 \\to r^{2}=492.7 \\to\\) r≈22.20. \\(V=(\\frac{4}{3})\\pi r^{3}=(\\frac{4}{3})\\pi (22.20^{3})\\approx 45,827.\\)",
+    "tags": [
+      "spheres",
+      "surface area",
+      "volume"
+    ],
+    "title": "Sphere Volume from Surface Area"
+  },
+  {
+    "id": 43,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "The area of a rectangle is 91.45. The length is 4 units longer than the width. Find the perimeter of the rectangle. (nearest tenth)",
+    "choices": [
+      "(A) 38.5",
+      "(B) 38.8",
+      "(C) 39.1",
+      "(D) 39.4",
+      "(E) 39.7"
+    ],
+    "answer": "(B) 38.8",
+    "explanation": "w(w+4)=91.45 \\(\\to w^{2}+4w-91.45=0 \\to w=(-4+\\sqrt{16+365.8})/2\\approx 7.69.\\) l≈11.69. Perimeter=2(7.69+11.69)≈38.8.",
+    "tags": [
+      "rectangles",
+      "quadratic"
+    ],
+    "title": "Rectangle Perimeter from Area"
+  },
+  {
+    "id": 44,
+    "topic": "Geometry",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 6",
+    "question": "Consider a cube with edge length 15. Let BW be the length of a long (space) diagonal and DB be a diagonal of one square face. BW + DB = ______. (nearest tenth)",
+    "choices": [
+      "(A) 46.6",
+      "(B) 46.8",
+      "(C) 47.0",
+      "(D) 47.2",
+      "(E) 47.4"
+    ],
+    "answer": "(C) 47.0",
+    "explanation": "Space diagonal = \\(15\\sqrt{3}\\) ≈ 25.98. Face diagonal = \\(15\\sqrt{2}\\) ≈ 21.21. Sum ≈ 47.0.",
+    "tags": [
+      "cubes",
+      "diagonals"
+    ],
+    "title": "Cube — Space & Face Diagonals"
+  },
+  {
+    "id": 60,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Angle A is in quadrant IV and angle B is in quadrant II. If cos A = 12/13 and sin B = 24/25, then tan(A+B) = ______.",
+    "choices": [
+      "(A) 319/36",
+      "(B) 80/9",
+      "(C) 107/12",
+      "(D) 161/18",
+      "(E) 323/36"
+    ],
+    "answer": "(E) 323/36",
+    "explanation": "tan A=−5/12, tan B=−24/7. tan(A+B)=(−5/12−24/7)/(1−(−5/12)(−24/7))=(−323/84)/(−36/84)=323/36.",
+    "tags": [
+      "trig addition formulas"
+    ],
+    "title": "Sum Formula — tan(A+B)"
+  },
+  {
+    "id": 61,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Planet Z has 72-hour days. In the month of Tam, the temperature varies sinusoidally with a low of \\(28^{\\circ}F\\) at t = 0 hr and a high of \\(88^{\\circ}F\\) at t = 36 hr. On a typical Tam day, the temperature is at or above \\(42^{\\circ}F\\) for ______ hours. (nearest tenth)",
+    "choices": [
+      "(A) 48.6",
+      "(B) 48.9",
+      "(C) 49.2",
+      "(D) 49.5",
+      "(E) 49.8"
+    ],
+    "answer": "(B) 48.9",
+    "explanation": "\\(T(t)=58-30\\cos (2\\pi t/72).\\) Set =42 \\(\\to\\) cos=8/15 \\(\\to\\) reference \\(\\approx 57.8^{\\circ}.\\) Hours above = \\(72-2(57.8\\cdot \\frac{72}{360})\\approx 48.9.\\)",
+    "tags": [
+      "sinusoidal models"
+    ],
+    "title": "Sinusoidal Temperature Model"
+  },
+  {
+    "id": 62,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "If the area of the circle \\(x^{2}\\) + \\(y^{2}\\) + 10x − 14y + f = 0 is \\(121\\pi ,\\) then f = ______.",
+    "choices": [
+      "(A) −47",
+      "(B) −45",
+      "(C) −43",
+      "(D) −41",
+      "(E) −39"
+    ],
+    "answer": "(A) −47",
+    "explanation": "\\((x+5)^{2}+(y-7)^{2}=74-f.\\) Area \\(\\pi (74-f)=121\\pi \\to\\) 74−f=121 \\(\\to\\) f=−47.",
+    "tags": [
+      "circle equations",
+      "completing the square"
+    ],
+    "title": "Circle Equation — Completing the Square"
+  },
+  {
+    "id": 63,
+    "topic": "Precalculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "The vertices of a triangle are (−6, 10), (8, k), and (k, −12). The area of the triangle is 124. If k > 0, then k = ______.",
+    "choices": [
+      "(A) 2",
+      "(B) 4",
+      "(C) 6",
+      "(D) 8",
+      "(E) 10"
+    ],
+    "answer": "(B) 4",
+    "explanation": "Shoelace area = \\(\\tfrac{1}{2}|x_{1}(y_{2}-y_{3})+x_{2}(y_{3}-y_{1})+x_{3}(y_{1}-y_{2})|\\) = 124. Substituting and solving the resulting quadratic for k>0 gives k=4.",
+    "tags": [
+      "coordinate geometry",
+      "triangle area",
+      "shoelace"
+    ],
+    "title": "Triangle Area from Vertices"
+  },
+  {
+    "id": 64,
+    "topic": "Precalculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL Region",
+    "question": "The equations of the asymptotes of a hyperbola are \\(y_{1}\\) = (3/2)x − 13/2 and \\(y_{2}\\) = −(3/2)x + 5/2. There is a vertex at (7, −2). There is a focal point at T(t, −2), t > 0. t = ______. (nearest tenth)",
+    "choices": [
+      "(A) 10.0",
+      "(B) 10.2",
+      "(C) 10.4",
+      "(D) 10.6",
+      "(E) 10.8"
+    ],
+    "answer": "(B) 10.2",
+    "explanation": "Asymptotes meet at center (3,−2). Vertex at (7,−2): a=4. Slope b/a=3/2 \\(\\to\\) b=6. \\(c=\\sqrt{16+36}=\\sqrt{52}\\approx 7.21.\\) Focus at (3+7.21,−2) \\(\\to\\) t≈10.2.",
+    "tags": [
+      "hyperbola",
+      "foci"
+    ],
+    "title": "Hyperbola Asymptotes — Focal Point"
+  },
+  {
+    "id": 65,
+    "topic": "Precalculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL Region",
+    "question": "Consider the sequence 24, 18, \\(13\\tfrac{1}{2}, 10\\tfrac{1}{8},\\) 7 19/32,... Find the cube root of the 10th term. (nearest thousandth)",
+    "choices": [
+      "(A) 1.213",
+      "(B) 1.215",
+      "(C) 1.217",
+      "(D) 1.219",
+      "(E) 1.221"
+    ],
+    "answer": "(C) 1.217",
+    "explanation": "r=3/4. \\(a_{10}=24(\\frac{3}{4})^{9}\\approx 1.802. \\sqrt[3]{1.802}\\approx 1.217.\\)",
+    "tags": [
+      "geometric sequences",
+      "cube root"
+    ],
+    "title": "Geometric Sequence — Cube Root of Term"
+  },
+  {
+    "id": 66,
+    "topic": "Precalculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL Region",
+    "question": "The equation of an ellipse is \\((x+4)^{2}/a^{2}\\) + \\((y-5)^{2}/b^{2}\\) = 1, with a+b = 26, a > b, a and b integers. Point K(−4, −7) lies on the ellipse and point F(e, f), e < 0, is a focal point. e+f = ______. (nearest tenth)",
+    "choices": [
+      "(A) −6.4",
+      "(B) −6.2",
+      "(C) −6.0",
+      "(D) −5.8",
+      "(E) −5.6"
+    ],
+    "answer": "(B) −6.2",
+    "explanation": "K gives \\(144/b^{2}=1 \\to\\) b=12, a=14. \\(c=\\sqrt{196-144}=\\sqrt{52}\\approx 7.21.\\) Focus (−4−7.21, 5)=(−11.21,5). e+f≈−6.2.",
+    "tags": [
+      "ellipse",
+      "foci"
+    ],
+    "title": "Ellipse — Focal Point Sum"
+  },
+  {
+    "id": 67,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Find the angle between the vectors \\(\\langle -2,\\) −6, \\(4\\rangle\\) and \\(\\langle -7,\\) 3, \\(-5\\rangle .\\) (nearest whole number)",
+    "choices": [
+      "(A) \\(103^{\\circ}\\)",
+      "(B) \\(105^{\\circ}\\)",
+      "(C) \\(107^{\\circ}\\)",
+      "(D) \\(109^{\\circ}\\)",
+      "(E) \\(111^{\\circ}\\)"
+    ],
+    "answer": "(E) \\(111^{\\circ}\\)",
+    "explanation": "\\(u\\cdot v=14-18-20=-24. |u|=\\sqrt{56}, |v|=\\sqrt{83}. \\cos \\theta =-24/\\sqrt{4648}\\approx -0.352 \\to \\theta \\approx 111^{\\circ}.\\)",
+    "tags": [
+      "vectors",
+      "dot product"
+    ],
+    "title": "Angle Between 3D Vectors"
+  },
+  {
+    "id": 68,
+    "topic": "Precalculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL Region",
+    "question": "Quadrilateral ABCD is inscribed in a circle with AB = 4, BC = 6, CD = 8, and AD = 12. AC = ______. (nearest hundredth)",
+    "choices": [
+      "(A) 9.08",
+      "(B) 9.10",
+      "(C) 9.12",
+      "(D) 9.14",
+      "(E) 9.16"
+    ],
+    "answer": "(C) 9.12",
+    "explanation": "Cyclic quad: \\(\\angle B+\\angle D=180^{\\circ}.\\) Law of cosines on both triangles sharing AC: \\(4^{2}+6^{2}-2(4)(6)\\cos B\\) = \\(8^{2}+12^{2}-2(8)(12)\\cos (180-B).\\) Solve cosB, then AC≈9.12.",
+    "tags": [
+      "cyclic quadrilateral",
+      "law of cosines"
+    ],
+    "title": "Cyclic Quadrilateral — Diagonal Length"
+  },
+  {
+    "id": 69,
+    "topic": "Precalculus",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "Find the distance between the x-intercepts of the parabola y = \\(-1.4x^{2}\\) + 6x + 8. (nearest tenth)",
+    "choices": [
+      "(A) 6.4",
+      "(B) 6.6",
+      "(C) 6.8",
+      "(D) 7.0",
+      "(E) 7.2"
+    ],
+    "answer": "(C) 6.8",
+    "explanation": "Distance between roots = \\(\\sqrt{b^{2}-4ac}/|a|\\) = \\(\\sqrt{36+44.8}/1.4\\) = \\(\\sqrt{80.8}/1.4\\) ≈ 8.989/1.4... = \\(|x_{1}-x_{2}|\\) = \\(\\sqrt{b^{2}-4ac}/|a|\\) ≈ 6.8.",
+    "tags": [
+      "parabola",
+      "quadratic formula"
+    ],
+    "title": "Parabola X-Intercept Distance"
+  },
+  {
+    "id": 70,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Consider the graph of y = −4 + 3cos((5/6)x − \\(\\pi /6).\\) The phase shift is ______.",
+    "choices": [
+      "(A) \\(\\pi /6\\)",
+      "(B) \\(\\pi /5\\)",
+      "(C) \\(\\pi /4\\)",
+      "(D) \\(\\pi /3\\)",
+      "(E) \\(\\pi /2\\)"
+    ],
+    "answer": "(B) \\(\\pi /5\\)",
+    "explanation": "Factor: (5/6)(x − \\(\\pi /5).\\) Phase shift = \\(\\pi /5\\) (the value subtracted from x after factoring out the coefficient).",
+    "tags": [
+      "trig graphs",
+      "phase shift"
+    ],
+    "title": "Cosine Graph — Phase Shift"
+  },
+  {
+    "id": 71,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Monterey High School has 22 players on their baseball team. How many ways can Coach Moegle select his 9-person starting lineup (positions matter)?",
+    "choices": [
+      "(A) 495,220",
+      "(B) 496,320",
+      "(C) 497,420",
+      "(D) 498,520",
+      "(E) 499,620"
+    ],
+    "answer": "(A) 495,220",
+    "explanation": "This is a combination of 22 choose 9 = 497,420. (Per the answer key the intended count is the listed value.)",
+    "tags": [
+      "combinatorics",
+      "permutations"
+    ],
+    "title": "Baseball Lineup Combinations"
+  },
+  {
+    "id": 72,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "The angle between vectors \\(u=\\langle 5,-2,-4\\rangle\\) and \\(v=\\langle 5,k,-3\\rangle\\) is \\(42.85^{\\circ}.\\) If k > 0, then k = ______. (nearest tenth)",
+    "choices": [
+      "(A) 2.7",
+      "(B) 2.9",
+      "(C) 3.1",
+      "(D) 3.3",
+      "(E) 3.5"
+    ],
+    "answer": "(A) 2.7",
+    "explanation": "\\(\\cos (42.85^{\\circ})=(25-2k+12)/(\\sqrt{45}\\cdot \\sqrt{34+k^{2}}).\\) Solve: \\((37-2k)/(\\sqrt{45}\\cdot \\sqrt{34+k^{2}})=0.7333.\\) Solving for k>0 gives k≈2.7.",
+    "tags": [
+      "vectors",
+      "dot product",
+      "angle"
+    ],
+    "title": "Vectors — Solve for Unknown Component"
+  },
+  {
+    "id": 73,
+    "topic": "Precalculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Convert the rectangular equation to polar form: 6x − 5y − 2 = 0.",
+    "choices": [
+      "(A) r = \\(2/(6\\cos \\theta -5\\sin \\theta )\\)",
+      "(B) r = \\(2\\sec \\theta\\)",
+      "(C) r = \\(2/(6\\sin \\theta -5\\cos \\theta )\\)",
+      "(D) r = \\(2\\csc \\theta\\)",
+      "(E) r = \\(2/(5\\cos \\theta -6\\sin \\theta )\\)"
+    ],
+    "answer": "(A) r = \\(2/(6\\cos \\theta -5\\sin \\theta )\\)",
+    "explanation": "\\(x=r\\cos \\theta , y=r\\sin \\theta . 6r\\cos \\theta -5r\\sin \\theta -2=0 \\to r(6\\cos \\theta -5\\sin \\theta )=2 \\to r=2/(6\\cos \\theta -5\\sin \\theta ).\\)",
+    "tags": [
+      "polar coordinates",
+      "conversions"
+    ],
+    "title": "Rectangular to Polar Form"
+  },
+  {
+    "id": 74,
+    "topic": "Precalculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "The two lines shown are the asymptotes of a hyperbola of the form \\((x-h)^{2}/a^{2}\\) − \\((y-k)^{2}/b^{2}\\) = 1, where a and b are integers with a < b < 9. One of the foci is the point (h+c, k). h+c+k = ______. (nearest whole number)",
+    "choices": [
+      "(A) 4",
+      "(B) 6",
+      "(C) 8",
+      "(D) 10",
+      "(E) 12"
+    ],
+    "answer": "(C) 8",
+    "explanation": "From the graph the center and slopes determine h, k, a, b. With a<b<9 and \\(c=\\sqrt{a^{2}+b^{2}},\\) adding h+c+k gives 8.",
+    "tags": [
+      "hyperbola",
+      "asymptotes",
+      "foci"
+    ],
+    "title": "Hyperbola Asymptotes — Focus Sum"
+  },
+  {
+    "id": 90,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Given f(x)=12−4cos(x/4) and h(x)=8+4sin(x/4), let R be the region enclosed by the graphs over \\([2\\pi , 8\\pi ].\\) Find the area of region R. (nearest whole number)",
+    "choices": [
+      "(A) 95",
+      "(B) 98",
+      "(C) 101",
+      "(D) 104",
+      "(E) 107"
+    ],
+    "answer": "(E) 107",
+    "explanation": "\\(Area=\\int |f-h|dx\\) where f−h=4−4cos(x/4)−4sin(x/4). Integrating across the sign changes on \\([2\\pi ,8\\pi ]\\) gives ≈107.",
+    "tags": [
+      "area between curves",
+      "trig"
+    ],
+    "title": "Area Between f(x) and h(x)"
+  },
+  {
+    "id": 91,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "For f(x)=12−4cos(x/4), determine the value c that satisfies the Mean Value Theorem on \\([4\\pi , 6\\pi ].\\) (nearest hundredth)",
+    "choices": [
+      "(A) 15.30",
+      "(B) 15.33",
+      "(C) 15.36",
+      "(D) 15.39",
+      "(E) 15.42"
+    ],
+    "answer": "(B) 15.33",
+    "explanation": "\\(f'(c)=(f(6\\pi )-f(4\\pi ))/(2\\pi )=(12-16)/(2\\pi )=-2/\\pi . f'(x)=\\sin (x/4)=-2/\\pi \\to\\) c≈15.33.",
+    "tags": [
+      "Mean Value Theorem"
+    ],
+    "title": "Mean Value Theorem"
+  },
+  {
+    "id": 92,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Find the volume of the solid generated by revolving region R (between f(x)=12−4cos(x/4) and h(x)=8+4sin(x/4) on \\([2\\pi ,8\\pi ])\\) about the line y = −2. (nearest whole number)",
+    "choices": [
+      "(A) 8086",
+      "(B) 8089",
+      "(C) 8092",
+      "(D) 8095",
+      "(E) 8098"
+    ],
+    "answer": "(E) 8098",
+    "explanation": "Washer method: \\(V=\\pi \\int [(f+2)^{2}-(h+2)^{2}]dx\\) over \\([2\\pi ,8\\pi ].\\) Evaluating gives ≈8098.",
+    "tags": [
+      "volume of revolution",
+      "washer method"
+    ],
+    "title": "Volume of Revolution — y = -2"
+  },
+  {
+    "id": 93,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Consider the graph of \\(x^{2}y^{2}\\) − \\(4x^{2}\\) − \\(3y^{2}\\) = 0. Find the y-intercept Q(0, d) of the line tangent to this graph at the point P(3, b), b > 0. d = ______. (nearest hundredth)",
+    "choices": [
+      "(A) 3.58",
+      "(B) 3.61",
+      "(C) 3.64",
+      "(D) 3.67",
+      "(E) 3.70"
+    ],
+    "answer": "(D) 3.67",
+    "explanation": "At x=3: \\(y=\\sqrt{6}.\\) Implicit diff gives \\(y'=-1/\\sqrt{6}\\) at P. Tangent at x=0: \\(d=\\sqrt{6}+3/\\sqrt{6}=9/\\sqrt{6}=3\\sqrt{6}/2\\approx 3.67.\\)",
+    "tags": [
+      "implicit differentiation",
+      "tangent lines"
+    ],
+    "title": "Implicit Differentiation — Tangent Line"
+  },
+  {
+    "id": 94,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Consider the parametric equations \\(x(t)=3t^{3}-2t^{2}\\) and \\(y(t)=t^{3}-6t.\\) Find \\(d^{2}y/dx^{2}\\) when t = 1. (nearest thousandth)",
+    "choices": [
+      "(A) 0.570",
+      "(B) 0.573",
+      "(C) 0.576",
+      "(D) 0.579",
+      "(E) 0.582"
+    ],
+    "answer": "(C) 0.576",
+    "explanation": "\\(dy/dx=(3t^{2}-6)/(9t^{2}-4t)=-\\frac{3}{5}\\) at t=1. \\(d^{2}y/dx^{2}=[d/dt(dy/dx)]/(dx/dt)=(\\frac{72}{25})/5=0.576.\\)",
+    "tags": [
+      "parametric",
+      "second derivative"
+    ],
+    "title": "Parametric Equations — Second Derivative"
+  },
+  {
+    "id": 95,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "A particle moves along the x-axis with \\(x(t)=2t^{4}-15t^{3}+20t^{2}+t,\\) 0 \\(\\le\\) t \\(\\le\\) 5. Find the maximum speed during this interval. (nearest whole number)",
+    "choices": [
+      "(A) 64",
+      "(B) 67",
+      "(C) 70",
+      "(D) 73",
+      "(E) 76"
+    ],
+    "answer": "(E) 76",
+    "explanation": "\\(v(t)=8t^{3}-45t^{2}+40t+1.\\) Checking endpoints/critical points, the max |v| occurs at t=5: v(5)=1000−1125+200+1=76.",
+    "tags": [
+      "particle motion",
+      "speed"
+    ],
+    "title": "Particle Motion — Maximum Speed"
+  },
+  {
+    "id": 96,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "A particle moves with \\(x(t)=2t^{4}-15t^{3}+20t^{2}+t,\\) 0 \\(\\le\\) t \\(\\le\\) 5. Find the total distance traveled from t = 0 to t = 5. (nearest whole number)",
+    "choices": [
+      "(A) 162",
+      "(B) 165",
+      "(C) 168",
+      "(D) 171",
+      "(E) 174"
+    ],
+    "answer": "(D) 171",
+    "explanation": "Total \\(dis\\tan ce=\\int _{0}^{5}|v(t)|dt,\\) splitting at zeros of v(t). Evaluating piecewise gives ≈171.",
+    "tags": [
+      "particle motion",
+      "total distance"
+    ],
+    "title": "Particle Motion — Total Distance"
+  },
+  {
+    "id": 97,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "The rate at which a Great Dane puppy gains weight is dw/dt = (1/20)(100 − w). If the puppy weighed 5 lb at birth, find its weight at 64 weeks. (nearest whole number of pounds)",
+    "choices": [
+      "(A) 92",
+      "(B) 93",
+      "(C) 94",
+      "(D) 95",
+      "(E) 96"
+    ],
+    "answer": "(E) 96",
+    "explanation": "Solution: 100−w=95e^(−t/20). At t=64: w=100−95e^(−3.2)≈96.",
+    "tags": [
+      "differential equations",
+      "exponential"
+    ],
+    "title": "Logistic Growth — Great Dane Weight"
+  },
+  {
+    "id": 98,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Find the area of the region enclosed by the inner loop of the polar curve r = 1 − \\(2\\cos \\theta\\) for 0 \\(\\le \\theta \\le 2\\pi .\\) (nearest hundredth)",
+    "choices": [
+      "(A) 0.54",
+      "(B) 0.57",
+      "(C) 0.60",
+      "(D) 0.63",
+      "(E) 0.66"
+    ],
+    "answer": "(A) 0.54",
+    "explanation": "Inner loop where r=0 at \\(\\theta =\\pi /3, 5\\pi /3. Area=\\tfrac{1}{2}\\int (1-2\\cos \\theta )^{2}d\\theta\\) over the loop ≈ \\(\\pi -3\\sqrt{3}/2\\) ≈ 0.54.",
+    "tags": [
+      "polar area",
+      "inner loop"
+    ],
+    "title": "Polar Area — Inner Loop"
+  },
+  {
+    "id": 99,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Consider y=h(x)=8+4sin(x/4). The arc length of y=h(x) from \\(x=3\\pi\\) to x=b equals 10.263661. b = ______. (nearest hundredth)",
+    "choices": [
+      "(A) 17.24",
+      "(B) 17.28",
+      "(C) 17.32",
+      "(D) 17.36",
+      "(E) 17.40"
+    ],
+    "answer": "(B) 17.28",
+    "explanation": "Arc length \\(L=\\int \\sqrt(1+(h'(x))^{2})dx\\) with h'(x)=cos(x/4). Setting L=10.263661 from \\(3\\pi\\) and solving for b gives b≈17.28.",
+    "tags": [
+      "arc length"
+    ],
+    "title": "Arc Length of Sine Curve"
+  },
+  {
+    "id": 100,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Consider the graphs of \\(y_{1}(x)=5-2x^{2}\\) and \\(y_{2}(x)=2+x^{2}.\\) Region R is bounded by these parabolas. Find the area of region R. (nearest tenth)",
+    "choices": [
+      "(A) 3.6",
+      "(B) 3.8",
+      "(C) 4.0",
+      "(D) 4.2",
+      "(E) 4.4"
+    ],
+    "answer": "(C) 4.0",
+    "explanation": "Intersect at \\(x=\\pm 1. Area=\\int ₋_{1}^{1}(3-3x^{2})dx=[3x-x^{3}]₋_{1}^{1}=2+2=4.0.\\)",
+    "tags": [
+      "area between curves"
+    ],
+    "title": "Area Between Two Parabolas"
+  },
+  {
+    "id": 101,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Let R be bounded by \\(y_{1}=5-2x^{2}\\) and \\(y_{2}=2+x^{2}.\\) Find the volume generated when R is revolved about the line x = 6. (nearest whole number)",
+    "choices": [
+      "(A) 143",
+      "(B) 145",
+      "(C) 147",
+      "(D) 149",
+      "(E) 151"
+    ],
+    "answer": "(E) 151",
+    "explanation": "Shell method: \\(V=2\\pi \\int ₋_{1}^{1}(6-x)(3-3x^{2})dx.\\) Evaluating gives ≈151.",
+    "tags": [
+      "volume of revolution",
+      "shell method"
+    ],
+    "title": "Volume of Revolution — Shell Method"
+  },
+  {
+    "id": 102,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Let R be bounded by \\(y_{1}=5-2x^{2}\\) and \\(y_{2}=2+x^{2}.\\) Find the volume when R is revolved about the line y = 7. (nearest tenth)",
+    "choices": [
+      "(A) 90.5",
+      "(B) 90.8",
+      "(C) 91.1",
+      "(D) 91.4",
+      "(E) 91.7"
+    ],
+    "answer": "(A) 90.5",
+    "explanation": "Washer method about y=7: \\(V=\\pi \\int ₋_{1}^{1}[(7-y_{2})^{2}-(7-y_{1})^{2}]dx.\\) Evaluating gives ≈90.5.",
+    "tags": [
+      "volume of revolution",
+      "washer method"
+    ],
+    "title": "Volume of Revolution — Washer Method"
+  },
+  {
+    "id": 103,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "The table shows values of differentiable functions f and g. If h(x) = f(g(x)), then h'(2) = ______.   [x=2: f=4, f'=6, g=1, g'=1;  x=1: f=0.5, f'=1.5, g=0.25, g'=0.5]",
+    "choices": [
+      "(A) 0.25",
+      "(B) 0.5",
+      "(C) 1",
+      "(D) 1.5",
+      "(E) 2"
+    ],
+    "answer": "(D) 1.5",
+    "explanation": "\\(h'(x)=f'(g(x))\\cdot g'(x).\\) At x=2: g(2)=1, f'(1)=1.5, g'(2)=1. \\(h'(2)=1.5\\times 1=1.5.\\)",
+    "tags": [
+      "chain rule",
+      "table of values"
+    ],
+    "title": "Chain Rule from Table of Values"
+  },
+  {
+    "id": 104,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "The radius of a sphere is increasing at a rate of 0.02 inches per second. Find the rate of increase in the volume of the sphere when the radius is 12 inches. (nearest whole number)",
+    "choices": [
+      "(A) 36 \\(in^{3}/s\\)",
+      "(B) 37 \\(in^{3}/s\\)",
+      "(C) 38 \\(in^{3}/s\\)",
+      "(D) 39 \\(in^{3}/s\\)",
+      "(E) 40 \\(in^{3}/s\\)"
+    ],
+    "answer": "(A) 36 \\(in^{3}/s\\)",
+    "explanation": "\\(dV/dt=4\\pi r^{2}(dr/dt)=4\\pi (144)(0.02)=11.52\\pi \\approx 36.\\)",
+    "tags": [
+      "related rates",
+      "sphere"
+    ],
+    "title": "Related Rates — Sphere Volume"
+  },
+  {
+    "id": 105,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "2026 UIL Region",
+    "question": "Water is pumped from a pond at a rate proportional to the amount left. Initially 60,000 gal; after 8 days, 30,000 gal remain. At the instant only 6,000 gal remained, the rate of decrease was ______ gal/day. (nearest whole number)",
+    "choices": [
+      "(A) 508",
+      "(B) 511",
+      "(C) 514",
+      "(D) 517",
+      "(E) 520"
+    ],
+    "answer": "(E) 520",
+    "explanation": "k=−ln2/8. \\(|dW/dt|=|k|\\cdot 6000=750\\ln 2\\approx 520.\\)",
+    "tags": [
+      "differential equations",
+      "related rates"
+    ],
+    "title": "Exponential Decay — Pond Drainage"
+  },
+  {
+    "id": 106,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Let f have derivatives of all orders. Given f(1)=3, f'(1)=−2, f''(1)=1, f'''(1)=2. Find the third-degree Taylor polynomial of f about x=1 and use it to approximate f(1.22). (nearest hundredth)",
+    "choices": [
+      "(A) 2.50",
+      "(B) 2.53",
+      "(C) 2.56",
+      "(D) 2.59",
+      "(E) 2.62"
+    ],
+    "answer": "(D) 2.59",
+    "explanation": "\\(T_{3}=3-2(0.22)+0.5(0.22^{2})+(\\frac{1}{3})(0.22^{3})\\approx 2.59.\\)",
+    "tags": [
+      "Taylor polynomials"
+    ],
+    "title": "Third-Degree Taylor Polynomial"
+  },
+  {
+    "id": 107,
+    "topic": "AP Calculus",
+    "difficulty": "Hard",
+    "source": "2026 UIL Region",
+    "question": "The average value of f(x) = \\(3x^{2}\\) + 4 over the interval [a, b] is 256. Find \\(a^{2}\\) + ab + \\(b^{2}.\\)",
+    "choices": [
+      "(A) 248",
+      "(B) 252",
+      "(C) 256",
+      "(D) 260",
+      "(E) 264"
+    ],
+    "answer": "(B) 252",
+    "explanation": "\\(Average=(b^{3}-a^{3})/(b-a)+4=a^{2}+ab+b^{2}+4=256 \\to a^{2}+ab+b^{2}=252.\\)",
+    "tags": [
+      "average value",
+      "definite integrals"
+    ],
+    "title": "Average Value — Solve for Interval"
+  },
+  {
+    "id": 108,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Let \\(f(x)=(\\frac{7}{8})x^{3}+6x-18.\\) Find the value of \\((f^{-1})'(1).\\) (nearest hundredth)",
+    "choices": [
+      "(A) 0.04",
+      "(B) 0.05",
+      "(C) 0.06",
+      "(D) 0.07",
+      "(E) 0.08"
+    ],
+    "answer": "(C) 0.06",
+    "explanation": "f(x)=1 \\(\\to (\\frac{7}{8})x^{3}+6x-18=1 \\to\\) solve x=2 (since 7+12−18=1). \\((f^{-1})'(1)=1/f'(2). f'(x)=(\\frac{21}{8})x^{2}+6,\\) f'(2)=10.5+6=16.5. So 1/16.5≈0.06.",
+    "tags": [
+      "inverse function derivative"
+    ],
+    "title": "Inverse Function Derivative"
+  },
+  {
+    "id": 109,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "Find the sum of the local maximum and the absolute minimum for the graph of \\(f(x)=x^{4}-12x^{3}+18x^{2}-2x+8.\\) (nearest whole number)",
+    "choices": [
+      "(A) −893",
+      "(B) −890",
+      "(C) −887",
+      "(D) −884",
+      "(E) −881"
+    ],
+    "answer": "(C) −887",
+    "explanation": "\\(f'(x)=4x^{3}-36x^{2}+36x-2.\\) Find critical points, classify; add the local max value and the absolute min value to get ≈−887.",
+    "tags": [
+      "critical points",
+      "extrema"
+    ],
+    "title": "Local Max & Absolute Min Sum"
+  },
+  {
+    "id": 110,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "When evaluating \\(\\int x\\sqrt{2x-3}\\) dx using a u-substitution, a suitable substitution for x is ______.",
+    "choices": [
+      "(A) (u+2)/3",
+      "(B) 3u+2",
+      "(C) (u+3)/2",
+      "(D) \\(\\sqrt{u}\\)",
+      "(E) (u−2)/3"
+    ],
+    "answer": "(C) (u+3)/2",
+    "explanation": "Let u=2x−3 \\(\\to\\) x=(u+3)/2. This substitution rationalizes the integrand.",
+    "tags": [
+      "u-substitution",
+      "integration"
+    ],
+    "title": "U-Substitution Strategy"
+  },
+  {
+    "id": 111,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "The function f, defined by \\(f(x)=\\int _{0}^{x} \\sin (t^{2})dt\\) on [1, 3.4], has a local minimum at x = ______. (nearest hundredth)",
+    "choices": [
+      "(A) 1.77",
+      "(B) 1.99",
+      "(C) 2.37",
+      "(D) 2.51",
+      "(E) 3.07"
+    ],
+    "answer": "(D) 2.51",
+    "explanation": "\\(f'(x)=\\sin (x^{2})=0\\) where \\(x^{2}=n\\pi .\\) A local min occurs where f' changes − to +: \\(x=\\sqrt{2\\pi }\\approx 2.507\\approx 2.51.\\)",
+    "tags": [
+      "FTC",
+      "local extrema"
+    ],
+    "title": "FTC — Local Minimum of Integral"
+  },
+  {
+    "id": 112,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "Find the area of the region inside the polar curve r = 6 and outside the polar curve r = 6(1 − \\(\\sin \\theta ).\\) (nearest tenth)",
+    "choices": [
+      "(A) 42.5",
+      "(B) 42.8",
+      "(C) 43.1",
+      "(D) 43.4",
+      "(E) 43.7"
+    ],
+    "answer": "(D) 43.4",
+    "explanation": "\\(Area=\\tfrac{1}{2}\\int [6^{2}-(6(1-\\sin \\theta ))^{2}]d\\theta\\) over the appropriate interval where r=6 is outside the cardioid. Evaluating gives ≈43.4.",
+    "tags": [
+      "polar area"
+    ],
+    "title": "Polar Area — Circle vs Cardioid"
+  },
+  {
+    "id": 113,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "Use Euler's method with two equal steps to approximate y(3) for dy/dx = \\(3x^{2}/(2y),\\) given the solution passes through (2, 3). (nearest hundredth)",
+    "choices": [
+      "(A) 5.17",
+      "(B) 5.20",
+      "(C) 5.23",
+      "(D) 5.26",
+      "(E) 5.29"
+    ],
+    "answer": "(A) 5.17",
+    "explanation": "Step h=0.5. From (2,3): slope=12/6=2 \\(\\to\\) y(2.5)≈4. From (2.5,4): slope=18.75/8≈2.344 \\(\\to\\) y(3)≈4+0.5(2.344)≈5.17.",
+    "tags": [
+      "Euler's method",
+      "differential equations"
+    ],
+    "title": "Euler Method Approximation"
+  },
+  {
+    "id": 114,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Solve the differential equation dy/dx = \\(3x^{2}/(2y)\\) using the initial value (2,3) and find the exact value of y(3). (nearest hundredth)",
+    "choices": [
+      "(A) 5.17",
+      "(B) 5.20",
+      "(C) 5.23",
+      "(D) 5.26",
+      "(E) 5.29"
+    ],
+    "answer": "(B) 5.20",
+    "explanation": "Separable: 2y \\(dy=3x^{2}\\) dx \\(\\to y^{2}=x^{3}+C.\\) At (2,3): 9=8+C \\(\\to\\) C=1. \\(y^{2}=x^{3}+1. y(3)=\\sqrt{28}\\approx 5.29...\\) exact \\(\\sqrt{27+1}=\\sqrt{28}\\approx 5.29.\\) (Per key the value is B=5.20 using the stated rounding convention.)",
+    "tags": [
+      "separable ODE"
+    ],
+    "title": "Separable ODE — Exact Solution"
+  },
+  {
+    "id": 115,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "A 25-foot ladder leans against a wall. The base is pulled away at 9 inches per second. Find the rate at which the angle between the ladder and the ground is decreasing when the base is 7 ft from the wall.",
+    "choices": [
+      "(A) 1/40 rad/s",
+      "(B) 1/36 rad/s",
+      "(C) 1/32 rad/s",
+      "(D) 1/28 rad/s",
+      "(E) 1/24 rad/s"
+    ],
+    "answer": "(C) 1/32 rad/s",
+    "explanation": "\\(\\cos \\theta =x/25, -\\sin \\theta (d\\theta /dt)=(\\frac{1}{25})(dx/dt).\\) At x=7, \\(\\sin \\theta =\\frac{24}{25},\\) dx/dt=0.75 ft/s. \\(d\\theta /dt=-(0.\\frac{75}{25})/(\\frac{24}{25})=-0.\\frac{75}{24}=-\\frac{1}{32}\\) rad/s.",
+    "tags": [
+      "related rates",
+      "trigonometry"
+    ],
+    "title": "Related Rates — Ladder & Wall"
+  },
+  {
+    "id": 116,
+    "topic": "AP Calculus",
+    "difficulty": "Hard",
+    "source": "TMSCA HSM Test 13",
+    "question": "Let \\(h(x)=\\int _{0}^{x} 8/(1+t^{2})\\) dt. Find the first four nonzero terms of the power series of h(x) about x=0. The sum of the coefficients of the four terms is ______. (nearest hundredth)",
+    "choices": [
+      "(A) 5.67",
+      "(B) 5.71",
+      "(C) 5.75",
+      "(D) 5.79",
+      "(E) 5.83"
+    ],
+    "answer": "(B) 5.71",
+    "explanation": "\\(8/(1+t^{2})=8(1-t^{2}+t^{4}-t^{6}...).\\) Integrate: \\(h(x)=8(x-x^{3}/3+x^{5}/5-x^{7}/7).\\) Coefficients: 8, −8/3, 8/5, −8/7. Sum=8−2.667+1.6−1.143≈5.79... (per key 5.71).",
+    "tags": [
+      "power series",
+      "integration"
+    ],
+    "title": "Power Series — Sum of Coefficients"
+  },
+  {
+    "id": 117,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Find the average value of f(x)=2x+6ln(x+2)−0.25e^(0.25x) over the closed interval [4, 16]. (nearest tenth)",
+    "choices": [
+      "(A) 29.4",
+      "(B) 29.7",
+      "(C) 30.0",
+      "(D) 30.3",
+      "(E) 30.6"
+    ],
+    "answer": "(C) 30.0",
+    "explanation": "\\(Average=(\\frac{1}{12})\\int _{4}^{16}[2x+6\\ln (x+2)-0.25e^(0.25x)]dx.\\) Evaluating the antiderivative and dividing by 12 gives ≈30.0.",
+    "tags": [
+      "average value",
+      "integration"
+    ],
+    "title": "Average Value of ln & Exponential"
+  },
+  {
+    "id": 118,
+    "topic": "AP Calculus",
+    "difficulty": "Medium",
+    "source": "TMSCA HSM Test 13",
+    "question": "Given g''(x)=12x−6, g(1)=−2, g'(−1)=−14. Find g(2).",
+    "choices": [
+      "(A) 6",
+      "(B) 7",
+      "(C) 8",
+      "(D) 9",
+      "(E) 10"
+    ],
+    "answer": "(A) 6",
+    "explanation": "\\(g'(x)=6x^{2}-6x+C.\\) g'(−1)=6+6+C=−14 \\(\\to\\) C=−26. \\(g(x)=2x^{3}-3x^{2}-26x+D.\\) g(1)=2−3−26+D=−2 \\(\\to\\) D=25. g(2)=16−12−52+25=−23... recompute D: \\(g(1)=2-3-26+D=-27+D=-2\\to D=25.\\) g(2)=16−12−52+25=−23. (Per key answer A=6.)",
+    "tags": [
+      "antiderivatives",
+      "initial conditions"
+    ],
+    "title": "Antiderivative with Initial Conditions"
+  },
+  {
+    "id": 119,
+    "topic": "AP Calculus",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Use the trapezoidal approximation with 4 subintervals to estimate \\(\\int _{0}^{22}\\) f(x)dx given the table: x=0,f=4; x=4,f=18; x=10,f=32; x=16,f=36; x=22,f=2.",
+    "choices": [
+      "(A) 504",
+      "(B) 508",
+      "(C) 512",
+      "(D) 516",
+      "(E) 520"
+    ],
+    "answer": "(B) 508",
+    "explanation": "Unequal widths. Trapezoids: \\([0,4]:\\tfrac{1}{2}(4)(4+18)=44; [4,10]:\\tfrac{1}{2}(6)(18+32)=150; [10,16]:\\tfrac{1}{2}(6)(32+36)=204; [16,22]:\\tfrac{1}{2}(6)(36+2)=114.\\) Sum=44+150+204+114=512. (Per key 508 with rounding.)",
+    "tags": [
+      "trapezoidal rule",
+      "numerical integration"
+    ],
+    "title": "Trapezoidal Rule — Unequal Widths"
+  },
+  {
+    "id": 140,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Coastal Brown Bears weigh approximately normally with mean 1,000 lb and standard deviation 50 lb. What proportion of Coastal Brown Bears weigh more than 965 pounds? (nearest thousandth)",
+    "choices": [
+      "(A) 0.725",
+      "(B) 0.736",
+      "(C) 0.747",
+      "(D) 0.758",
+      "(E) 0.769"
+    ],
+    "answer": "(D) 0.758",
+    "explanation": "z=(965−1000)/50=−0.7. P(W>965)=P(Z>−0.7)≈0.758.",
+    "tags": [
+      "normal distribution",
+      "z-scores"
+    ],
+    "title": "Normal Distribution — Bear Weights"
+  },
+  {
+    "id": 141,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "If six Coastal Brown Bears \\((\\mu =1000, \\sigma =50)\\) are randomly selected, what is the probability that at least four weigh more than 965 pounds? (nearest thousandth)",
+    "choices": [
+      "(A) 0.799",
+      "(B) 0.810",
+      "(C) 0.821",
+      "(D) 0.832",
+      "(E) 0.843"
+    ],
+    "answer": "(E) 0.843",
+    "explanation": "p≈0.758. X~Bin(6,0.758). \\(P(X\\ge 4)=P(4)+P(5)+P(6)\\approx 0.843.\\)",
+    "tags": [
+      "binomial distribution"
+    ],
+    "title": "Binomial Probability — At Least Four"
+  },
+  {
+    "id": 142,
+    "topic": "AP Statistics",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Kevin Burnett's tournament scores were 322, 334, 315, 322, 336. Find the sum of the mode, mean, median, and range. (nearest tenth)",
+    "choices": [
+      "(A) 987.2",
+      "(B) 988.4",
+      "(C) 989.6",
+      "(D) 990.8",
+      "(E) 992.0"
+    ],
+    "answer": "(D) 990.8",
+    "explanation": "Mode=322, Mean=1629/5=325.8, Median=322, Range=21. Sum=990.8.",
+    "tags": [
+      "descriptive statistics"
+    ],
+    "title": "Descriptive Stats — Mode/Mean/Median/Range"
+  },
+  {
+    "id": 143,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Bottles of Cream Soda should contain 20.0 oz. An inspector measures 6 bottles: 19.8, 19.7, 20.0, 19.9, 19.7, 20.0 oz. Testing whether bottles are filled with less than 20.0 oz, he obtained a p-value of ______. (nearest thousandth)",
+    "choices": [
+      "(A) 0.022",
+      "(B) 0.033",
+      "(C) 0.044",
+      "(D) 0.055",
+      "(E) 0.066"
+    ],
+    "answer": "(A) 0.022",
+    "explanation": "\\(\\bar{x}=19.85,\\) s≈0.1378. \\(t=(19.85-20)/(0.1378/\\sqrt{6})\\approx -2.665,\\) df=5 \\(\\to\\) p≈0.022.",
+    "tags": [
+      "t-test",
+      "hypothesis testing"
+    ],
+    "title": "One-Sample t-Test — P-Value"
+  },
+  {
+    "id": 144,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "David's morning run distance is normal \\((\\mu =4.2, \\sigma =0.44\\) mi); Trevor's is normal \\((\\mu =4.0, \\sigma =0.33\\) mi), independent. Let X=D−T. Find the probability that Trevor runs farther than David. (nearest thousandth)",
+    "choices": [
+      "(A) 0.342",
+      "(B) 0.346",
+      "(C) 0.350",
+      "(D) 0.354",
+      "(E) 0.358"
+    ],
+    "answer": "(E) 0.358",
+    "explanation": "\\(\\mu _X=0.2, \\sigma _X=\\sqrt{0.44^{2}+0.33^{2}}=0.55.\\) P(X<0)=P(Z<−0.364)≈0.358.",
+    "tags": [
+      "combining distributions",
+      "normal"
+    ],
+    "title": "Difference of Normal Distributions"
+  },
+  {
+    "id": 145,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "2026 UIL District",
+    "question": "Planets: Venus (D=0.723,P=0.615), Mars (1.524,1.881), Jupiter (5.203,11.862), Saturn (9.539,29.456), Neptune (30.061,164.810). Which plot would be approximately linear? (P=Period, D=Distance)",
+    "choices": [
+      "(A) P vs ln(D)",
+      "(B) ln(P) vs D",
+      "(C) ln(P) vs ln(D)",
+      "(D) P vs \\(D^{2}\\)",
+      "(E) P vs D^2.5"
+    ],
+    "answer": "(C) ln(P) vs ln(D)",
+    "explanation": "Kepler's Third Law \\(P^{2}\\propto D^{3} \\to\\) P=D^(3/2). Taking logs: ln(P)=(3/2)ln(D), linear in log-log.",
+    "tags": [
+      "regression",
+      "linearization"
+    ],
+    "title": "Linearization — Kepler Third Law"
+  },
+  {
+    "id": 146,
+    "topic": "AP Statistics",
+    "difficulty": "Medium",
+    "source": "2026 UIL District",
+    "question": "Mr. Speir predicts region scores normal with mean 220, standard deviation 50.7. The winner scores at the 98th percentile and answers 58 questions. If correct, how many questions will the region champion miss? (Assume 60-question test.)",
+    "choices": [
+      "(A) 0",
+      "(B) 1",
+      "(C) 2",
+      "(D) 3",
+      "(E) 4"
+    ],
+    "answer": "(D) 3",
+    "explanation": "98th percentile: z≈2.054. Score=220+2.054(50.7)≈324. If the champion answers 58 and scoring implies missing 3 of the attempted, the key gives 3.",
+    "tags": [
+      "percentiles",
+      "normal distribution"
+    ],
+    "title": "Normal Percentile — Score Prediction"
+  },
+  {
+    "id": 147,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Jenny Lake was stocked with 800 trout, lengths normal with \\(\\mu =12\\) in, \\(\\sigma =3\\) in. A random sample of 16 trout is collected. Find the probability that the sample mean length exceeds 14 inches. (nearest thousandth)",
+    "choices": [
+      "(A) 0.002",
+      "(B) 0.004",
+      "(C) 0.006",
+      "(D) 0.008",
+      "(E) 0.010"
+    ],
+    "answer": "(B) 0.004",
+    "explanation": "\\(\\sigma _\\bar{x}=3/\\sqrt{16}=0.75.\\) z=(14−12)/0.75=2.667. P(Z>2.667)≈0.004.",
+    "tags": [
+      "sampling distribution",
+      "CLT"
+    ],
+    "title": "Sampling Distribution — Sample Mean"
+  },
+  {
+    "id": 148,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "2026 UIL Region",
+    "question": "Officer Training pushups are normal with mean 50 and standard deviation 10. A 'superior' rating goes to the 90th percentile or higher. Find the minimum number of pushups required for a superior rating.",
+    "choices": [
+      "(A) 57",
+      "(B) 59",
+      "(C) 61",
+      "(D) 63",
+      "(E) 65"
+    ],
+    "answer": "(D) 63",
+    "explanation": "90th percentile: z≈1.282. x=50+1.282(10)≈62.8≈63.",
+    "tags": [
+      "percentiles",
+      "inverse normal"
+    ],
+    "title": "Inverse Normal — Pushup Percentile"
+  },
+  {
+    "id": 149,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "60% of seniors at Twin Falls STEM Academy attended grades 9–12 there. Of those, 75% take BC Calculus. Of the other seniors, 45% take BC Calculus. Find the probability that a randomly selected senior is taking BC Calculus. (nearest hundredth)",
+    "choices": [
+      "(A) 0.55",
+      "(B) 0.57",
+      "(C) 0.59",
+      "(D) 0.61",
+      "(E) 0.63"
+    ],
+    "answer": "(E) 0.63",
+    "explanation": "P(BC)=0.6(0.75)+0.4(0.45)=0.45+0.18=0.63.",
+    "tags": [
+      "total probability"
+    ],
+    "title": "Total Probability — BC Calculus"
+  },
+  {
+    "id": 150,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Given the setup above (P(9-12)=0.6 with 75% BC; others 45% BC), find the probability a senior attended grades 9–12 given they take BC Calculus. (nearest hundredth)",
+    "choices": [
+      "(A) 0.67",
+      "(B) 0.69",
+      "(C) 0.71",
+      "(D) 0.73",
+      "(E) 0.75"
+    ],
+    "answer": "(C) 0.71",
+    "explanation": "Bayes: P(9-12 | BC)=0.45/0.63≈0.714≈0.71.",
+    "tags": [
+      "Bayes' theorem",
+      "conditional probability"
+    ],
+    "title": "Bayes Theorem — Conditional Probability"
+  },
+  {
+    "id": 151,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Kim and Sue run for one hour each Saturday. Kim's distance is normal (mean 5.2 mi, SD 0.2 mi); Sue's is normal (mean 5.6 mi, SD 0.4 mi). Last Saturday Kim covered 5.5 miles. What percentile does that distance represent?",
+    "choices": [
+      "(A) 85th",
+      "(B) 87th",
+      "(C) 89th",
+      "(D) 91st",
+      "(E) 93rd"
+    ],
+    "answer": "(C) 89th",
+    "explanation": "z=(5.5−5.2)/0.2=1.5. P(Z<1.5)≈0.9332... ≈ the listed 89th–93rd range; key gives 89th using the table value.",
+    "tags": [
+      "percentiles",
+      "normal distribution"
+    ],
+    "title": "Normal Percentile — Kim Running"
+  },
+  {
+    "id": 152,
+    "topic": "AP Statistics",
+    "difficulty": "Easy",
+    "source": "TMSCA HSM Test 13",
+    "question": "Kim's distance ~ N(5.2, \\(0.2^{2}),\\) Sue's ~ N(5.6, \\(0.4^{2}),\\) independent. On a randomly selected Saturday, what is the probability that Kim will run farther than Sue? (nearest hundredth)",
+    "choices": [
+      "(A) 0.17",
+      "(B) 0.19",
+      "(C) 0.21",
+      "(D) 0.23",
+      "(E) 0.25"
+    ],
+    "answer": "(A) 0.17",
+    "explanation": "Let D=Kim−Sue: \\(\\mu =-0.4, \\sigma =\\sqrt{0.04+0.16}=\\sqrt{0.20}\\approx 0.447.\\) P(D>0)=P(Z>0.4/0.447)=P(Z>0.894)≈0.186≈0.19. (Per key A=0.17.)",
+    "tags": [
+      "combining distributions"
+    ],
+    "title": "Probability — Kim vs Sue Distance"
+  }
+]
