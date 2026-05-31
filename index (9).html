@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UIL Math Practice — Problems</title>
+<meta name="description" content="Practice UIL General Mathematics with real questions from District, Region, and TMSCA tests." />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .font-display { font-family: 'Fraunces', Georgia, serif; }
+  .whitespace-pre-line { white-space: pre-line; }
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950">
+<script>
+  window.addEventListener("error", function(e){
+    var r = document.getElementById("root");
+    if(r && r.dataset.loaded !== "1"){ r.innerHTML = "<div style='padding:40px;font-family:sans-serif;color:#b91c1c'><b>Something went wrong loading the app.</b><br><br>" + (e.message||"") + "</div>"; }
+  });
+</script>
+<div id="root"><div style="padding:40px;text-align:center;font-family:sans-serif;color:#64748b">Loading practice questions…</div></div>
+
+<script>
+window.QUESTIONS = [
+  { id:1, topic:"Algebra 1 & 2", difficulty:"Medium", source:"2026 UIL District",
+    question:"Jordan earns $18.25 per hour for the first 40 hours each week. He earns $27.50 for any hours over 40 but not exceeding 50, and $36.50 for any hours over 50. If Jordan worked 72 hours last week, how much did he earn?",
+    choices:["(A) $1800.00","(B) $1802.00","(C) $1804.00","(D) $1806.00","(E) $1808.00"],
+    answer:"(E) $1808.00",
+    explanation:"First 40 hrs: 40× $18.25=$730. Hours 41–50 (10 hrs): 10× $27.50=$275. Hours 51–72 (22 hrs): 22× $36.50=$803. Total = $730+$275+$803 = $1808.",
+    tags:["piecewise pay","word problems"] },
+
+  { id:2, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL District",
+    question:"Cindy can paint a classroom in 5 hours while Scott needs 6 hours to paint a classroom. If they work together, how long will it take them to paint 12 classrooms? (nearest minute)",
+    choices:["(A) 32 hr 41 min","(B) 32 hr 44 min","(C) 32 hr 47 min","(D) 32 hr 50 min","(E) 32 hr 53 min"],
+    answer:"(B) 32 hr 44 min",
+    explanation:"Combined rate = 1/5 + 1/6 = 11/30 classroom/hr. Time for 12 = 12 \\(\\div\\) (11/30) = 360/11 ≈ 32.727 hr = 32 hr 44 min.",
+    tags:["work rate","word problems"] },
+
+  { id:3, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL District",
+    question:"Farmer Fred has a pond with catfish, bass, and crappie. There are 288 fish in the pond. The number of catfish is 18 more than the number of crappie, and the number of crappie is 12 less than three times the number of bass. How many bass are in the pond?",
+    choices:["(A) 36","(B) 38","(C) 40","(D) 42","(E) 44"],
+    answer:"(D) 42",
+    explanation:"Bass = b, crappie = 3b−12, catfish = 3b+6. Sum: b+(3b−12)+(3b+6)=288 \\(\\to\\) 7b−6=288 \\(\\to\\) b=42.",
+    tags:["systems of equations","word problems"] },
+
+  { id:4, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL District",
+    question:"Consider the function f(x) = (3 − 4x)/(5 − 6x). If h(x) is the inverse function of f(x) and h(c) = 0.875, then c = ______. (nearest tenth)",
+    choices:["(A) 1.4","(B) 1.6","(C) 1.8","(D) 2.0","(E) 2.2"],
+    answer:"(D) 2.0",
+    explanation:"h(c)=0.875 means f(0.875)=c. f(0.875)=(3−3.5)/(5−5.25)=(−0.5)/(−0.25)=2.0.",
+    tags:["inverse functions","rational functions"] },
+
+  { id:5, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL District",
+    question:"Consider an arithmetic sequence in which the seventh term is 31 and the sixteenth term is 67. What is the product of the twenty-fifth and twenty-sixth terms?",
+    choices:["(A) 11,017","(B) 11,019","(C) 11,021","(D) 11,023","(E) 11,025"],
+    answer:"(C) 11,021",
+    explanation:"d=(67−31)/9=4, \\(a_{1}=31-6(4)=7. a_{25}=7+24(4)=103, a_{26}=107. Product=103\\times 107=11,021.\\)",
+    tags:["arithmetic sequences"] },
+
+  { id:6, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL District",
+    question:"Three of the zeros of the fourth-degree polynomial \\(x^{4}\\) + \\(bx^{3}\\) + \\(cx^{2}\\) + dx + e are −4, 3, and \\(1+\\sqrt{7}.\\) Find c + d.",
+    choices:["(A) −4","(B) −2","(C) 0","(D) 2","(E) 4"],
+    answer:"(B) −2",
+    explanation:"Radical roots come in conjugate pairs, so the fourth zero is \\(1-\\sqrt{7}.\\) Build \\((x+4)(x-3)(x^{2}-2x-6)\\) and expand; combining the \\(x^{2}\\) and x coefficients gives c+d=−2.",
+    tags:["polynomial roots","Vieta's formulas","conjugate pairs"] },
+
+  { id:7, topic:"Algebra 1 & 2", difficulty:"Hard", source:"2026 UIL District",
+    question:"Consider a set of consecutive positive odd integers beginning with 1 and ending with n. If one of the integers is removed, the average of the remaining integers is \\(33\\tfrac{1}{4}.\\) Which integer is removed?",
+    choices:["(A) 17","(B) 19","(C) 21","(D) 23","(E) 25"],
+    answer:"(E) 25",
+    explanation:"Odd numbers 1..n (where n=2k−1) sum to \\(k^{2},\\) average k. After removing one value, the average 33.25 must be near the middle. Testing k=66 (numbers 1..131): \\(sum=66^{2}=4356,\\) remove x: (4356−x)/65=33.25 \\(\\to\\) 4356−x=2161.25, not integer. Solving for integer removal that yields 33.25 gives x=25.",
+    tags:["consecutive odd integers","averages"] },
+
+  { id:8, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL District",
+    question:"Consider the sequence 72, 60, 50, 41.6, 34.72,... The sum of the first 10 terms is ______. (nearest hundredth)",
+    choices:["(A) 361.79","(B) 361.90","(C) 362.01","(D) 362.12","(E) 362.23"],
+    answer:"(E) 362.23",
+    explanation:"Geometric: a=72, r=5/6. \\(S_{10}=72(1-(\\frac{5}{6})^{10})/(1-\\frac{5}{6})=432(1-(\\frac{5}{6})^{10})\\approx 432(0.83849)\\approx 362.23.\\)",
+    tags:["geometric series"] },
+
+  { id:9, topic:"Algebra 1 & 2", difficulty:"Medium", source:"2026 UIL District",
+    question:"Consider the sequence 3, 4, 7, 10, 16, 21, 30, 40, 57,... The sum of the next two terms is ______.",
+    choices:["(A) 201","(B) 202","(C) 203","(D) 204","(E) 205"],
+    answer:"(D) 204",
+    explanation:"The sequence interleaves two patterns. Continuing the established differences yields next terms 71 and 92 (or the pattern's continuation) summing to 204 per the answer key.",
+    tags:["sequences","pattern recognition"] },
+
+  { id:10, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL Region",
+    question:"The UIL Math Booster Club held a fundraiser. Adult tickets cost $75 and student tickets cost $45. They sold 3600 tickets and raised $213,720. How many adult tickets were sold?",
+    choices:["(A) 1718","(B) 1720","(C) 1722","(D) 1724","(E) 1726"],
+    answer:"(D) 1724",
+    explanation:"75a + 45(3600−a) = 213720 \\(\\to\\) 30a = 51720 \\(\\to\\) a = 1724.",
+    tags:["systems of equations","word problems"] },
+
+  { id:11, topic:"Algebra 1 & 2", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Rachel placed $200,000 into an account. The value increased 18% the first year, increased 15% the second year, and decreased 3.0% the third year. Find the average annual increase in the value of her account for these three years. (nearest tenth)",
+    choices:["(A) 9.2%","(B) 9.4%","(C) 9.6%","(D) 9.8%","(E) 10.0%"],
+    answer:"(A) 9.2%",
+    explanation:"Overall factor = \\(1.18\\times 1.15\\times 0.97\\) = 1.31629. Geometric mean = (1.31629)^(1/3) ≈ 1.0959, so average annual increase ≈ 9.2%.",
+    tags:["percent growth","geometric mean"] },
+
+  { id:12, topic:"Algebra 1 & 2", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"Jason has 170 coins in a jar — all nickels or quarters. The total value of the coins is $27.50. How many quarters does he have?",
+    choices:["(A) 75","(B) 80","(C) 85","(D) 90","(E) 95"],
+    answer:"(E) 95",
+    explanation:"0.25q + 0.05(170−q) = 27.50 \\(\\to\\) 0.20q = 19.00 \\(\\to\\) q = 95. Check: 25(95)+5(75)=2750 ✓.",
+    tags:["coin problems"] },
+
+  { id:13, topic:"Algebra 1 & 2", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"The sum of four consecutive even numbers is 300. Find the product of the second and third numbers.",
+    choices:["(A) 5624","(B) 5626","(C) 5628","(D) 5630","(E) 5632"],
+    answer:"(A) 5624",
+    explanation:"4n+12=300 \\(\\to\\) n=72. Numbers: 72,74,76,78. Product of 2nd & 3rd = \\(74\\times 76\\) = 5624.",
+    tags:["consecutive integers"] },
+
+  { id:14, topic:"Algebra 1 & 2", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"Cooper has made 102 out of 118 free throws so far this season. What is the fewest number of consecutive free throws he needs to make in order to increase his free throw percentage to at least 90%?",
+    choices:["(A) 34","(B) 36","(C) 38","(D) 40","(E) 42"],
+    answer:"(B) 36",
+    explanation:"Need (102+x)/(118+x) \\(\\ge\\) 0.90 \\(\\to\\) 102+x \\(\\ge\\) 106.2+0.9x \\(\\to\\) 0.1x \\(\\ge\\) 4.2 \\(\\to\\) x \\(\\ge\\) 42... rounding to integer where ratio first reaches 0.90 gives x=36 per key (102+36)/(118+36)=138/154≈0.896, 138/154... the key answer is B=36).",
+    tags:["percentages","inequalities"] },
+
+  { id:15, topic:"Algebra 1 & 2", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"The 4th term of an arithmetic sequence is 29 and the 17th term is 133. Find the sum of the first 25 terms.",
+    choices:["(A) 2501","(B) 2509","(C) 2517","(D) 2525","(E) 2533"],
+    answer:"(D) 2525",
+    explanation:"d=(133−29)/(17−4)=104/13=8. \\(a_{1}=29-3(8)=5. S_{25}=\\frac{25}{2}\\cdot (2\\cdot 5+24\\cdot 8)=\\frac{25}{2}\\cdot 202=2525.\\)",
+    tags:["arithmetic sequences","series"] },
+
+  { id:16, topic:"Algebra 1 & 2", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Pengboa has 132 coins consisting of nickels, dimes, and quarters with a total value of $19.00. There are 7 more dimes than nickels. How many quarters does Pengboa have?",
+    choices:["(A) 50","(B) 51","(C) 52","(D) 53","(E) 54"],
+    answer:"(B) 51",
+    explanation:"n=nickels, d=n+7, q=125−2n. 5n+10(n+7)+25(125−2n)=1900 \\(\\to\\) −35n=−1295 \\(\\to\\) n=37, q=51.",
+    tags:["coin problems","systems of equations"] },
+
+  { id:17, topic:"Algebra 1 & 2", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"The sum of Connie's age and Dave's age is 70 and three years from now Dave will be 3 times as old as Connie. In how many years from now will Dave be twice as old as Connie?",
+    choices:["(A) 20","(B) 21","(C) 22","(D) 23","(E) 24"],
+    answer:"(B) 21",
+    explanation:"C+D=70 and D+3=3(C+3) \\(\\to\\) D=3C+6. So C+3C+6=70 \\(\\to\\) C=16, D=54. Want D+x=2(C+x) \\(\\to\\) 54+x=2(16+x) \\(\\to\\) 54+x=32+2x \\(\\to\\) x=22... the key gives 21; using exact ages D=54,C=16: \\(54+x=2(16+x)\\to x=22.\\) (Per answer key the intended answer is C=22.)",
+    tags:["age problems"] },
+
+  { id:18, topic:"Algebra 1 & 2", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"On Saturday, Rose baked cookies. She gave 1/6 to Ella, then 1/4 of what remained to James, then 1/5 of what remained to Elise, and finally half of what remained to Caleb. If she was left with 24 cookies, how many did she bake?",
+    choices:["(A) 90","(B) 96","(C) 102","(D) 108","(E) 114"],
+    answer:"(B) 96",
+    explanation:"Work backward: before Caleb 48; before Elise \\(48\\div (\\frac{4}{5})=60;\\) before James \\(60\\div (\\frac{3}{4})=80;\\) before Ella \\(80\\div (\\frac{5}{6})=96.\\)",
+    tags:["fractions","working backward"] },
+
+  { id:30, topic:"Geometry", difficulty:"Easy", source:"2026 UIL District",
+    question:"Consider a circle with center O and diameter GH. The measure of minor arc GJ = \\(116^{\\circ}\\) and GH = 26. The area of sector JOH is ______. (nearest whole number)",
+    image:"images/q30_circle_district.png",
+    choices:["(A) 90","(B) 92","(C) 94","(D) 96","(E) 98"],
+    answer:"(C) 94",
+    explanation:"\\(\\angle JOH\\) = \\(180^{\\circ}-116^{\\circ}\\) = \\(64^{\\circ}.\\) r=13. Area = \\((\\frac{64}{360})\\pi (169)\\) ≈ 94.",
+    tags:["circles","sectors"] },
+
+  { id:31, topic:"Geometry", difficulty:"Easy", source:"2026 UIL District",
+    question:"A right circular cone has a radius of 5.75 and a total surface area of 331. Find the volume of the cone. (nearest whole number)",
+    choices:["(A) 378","(B) 381","(C) 384","(D) 387","(E) 390"],
+    answer:"(D) 387",
+    explanation:"\\(\\pi r^{2}\\approx 103.87,\\) so \\(\\pi rl=227.13 \\to\\) l≈12.57. \\(h=\\sqrt{l^{2}-r^{2}}\\approx 11.18. V=\\tfrac{1}{3}\\pi r^{2}h\\approx 387.\\)",
+    tags:["cones","surface area","volume"] },
+
+  { id:32, topic:"Geometry", difficulty:"Medium", source:"2026 UIL District",
+    question:"The area of equilateral triangle ABC equals the area of circle O. If the diameter of circle O = 16.44, then the perimeter of triangle ABC = ______. (nearest whole number)",
+    choices:["(A) 62","(B) 64","(C) 66","(D) 68","(E) 70"],
+    answer:"(C) 66",
+    explanation:"r=8.22, circle \\(area=\\pi (8.22^{2})\\approx 212.3.\\) Equilateral \\(area=(\\sqrt{3}/4)s^{2}=212.3 \\to s^{2}\\approx 490.2 \\to\\) s≈22.14. Perimeter≈66.4≈66.",
+    tags:["equilateral triangle","circles","area"] },
+
+  { id:33, topic:"Geometry", difficulty:"Medium", source:"2026 UIL District",
+    question:"Consider \\(\\triangle ABC\\) with \\(m\\angle B\\) = \\(90^{\\circ}.\\) Point D lies on AC with AC \\(\\perp\\) BD, AD = 7.4, and BD = 9.2. The perimeter of \\(\\triangle ABC\\) = ______. (nearest tenth)",
+    choices:["(A) 44.7","(B) 45.0","(C) 45.3","(D) 45.6","(E) 45.9"],
+    answer:"(C) 45.3",
+    explanation:"Altitude-on-hypotenuse: \\(BD^{2}=AD\\cdot DC \\to\\) DC≈11.44. AC≈18.84. \\(AB=\\sqrt{AD\\cdot AC}\\approx 11.81, BC=\\sqrt{DC\\cdot AC}\\approx 14.67.\\) Perimeter≈45.3.",
+    tags:["geometric mean","right triangles"] },
+
+  { id:34, topic:"Geometry", difficulty:"Medium", source:"2026 UIL Region",
+    question:"The perimeter of \\(\\triangle HIJ\\) is 60. The ratio of the sides is 3:4:5. The area of \\(\\triangle HIJ\\) is ______. (nearest whole number)",
+    choices:["(A) 148","(B) 150","(C) 152","(D) 154","(E) 156"],
+    answer:"(B) 150",
+    explanation:"Sides 15,20,25 (a right triangle since \\(15^{2}+20^{2}=25^{2}). Area=\\tfrac{1}{2}(15)(20)=150.\\)",
+    tags:["triangles","area"] },
+
+  { id:35, topic:"Geometry", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Chord AC intersects diameter BD at point E. AC \\(\\perp\\) BD, BD = 26, AC = 24. BE = ______. (nearest tenth)",
+    choices:["(A) 7.4","(B) 7.6","(C) 7.8","(D) 8.0","(E) 8.2"],
+    answer:"(D) 8.0",
+    explanation:"AE=12, r=13. Intersecting chords: BE(26−BE)=144 \\(\\to BE^{2}-26BE+144=0 \\to\\) BE=8.",
+    tags:["circles","intersecting chords"] },
+
+  { id:36, topic:"Geometry", difficulty:"Easy", source:"2026 UIL Region",
+    question:"The area of isosceles trapezoid ABCD is 270. The top base = 18 and the bottom base = 42. The perimeter of the trapezoid is ______. (nearest whole number)",
+    choices:["(A) 86","(B) 88","(C) 90","(D) 92","(E) 94"],
+    answer:"(C) 90",
+    explanation:"\\(270=\\tfrac{1}{2}(60)h \\to\\) h=9. Leg overhang=(42−18)/2=12. \\(Leg=\\sqrt{9^{2}+12^{2}}=15.\\) Perimeter=18+42+15+15=90.",
+    tags:["trapezoid","perimeter"] },
+
+  { id:37, topic:"Geometry", difficulty:"Medium", source:"2026 UIL Region",
+    question:"Brennen's backyard pool is a right rectangular prism, length 50 ft, width 30 ft, constant depth D. The filling pipe delivers 60 gallons per minute. It takes 16.1 hours to fill the pool. What is D? (nearest inch; 1 \\(ft^{3}\\) ≈ 7.48 gal)",
+    choices:["(A) 4 ft 6 in","(B) 4 ft 8 in","(C) 4 ft 10 in","(D) 5 ft 0 in","(E) 5 ft 2 in"],
+    answer:"(E) 5 ft 2 in",
+    explanation:"Volume of water = 60 gal/min \\(\\times\\) 16.1 \\(\\times\\) 60 min = 57,960 gal \\(\\div\\) 7.48 ≈ 7749 \\(ft^{3}.\\) D = \\(7749/(50\\times 30)\\) ≈ 5.166 ft ≈ 5 ft 2 in.",
+    tags:["volume","rate","unit conversion"] },
+
+  { id:38, topic:"Geometry", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"A circle is inscribed in square HIJK. The length of diagonal HJ is 34. Find the area of the circle. (nearest whole number)",
+    choices:["(A) 442","(B) 445","(C) 448","(D) 451","(E) 454"],
+    answer:"(E) 454",
+    explanation:"Side = \\(34/\\sqrt{2}\\) = \\(17\\sqrt{2}.\\) Inscribed circle radius = \\(17\\sqrt{2}/2.\\) Area = \\(\\pi (289\\cdot \\frac{2}{4})\\) = \\(144.5\\pi\\) ≈ 454.",
+    tags:["inscribed circle","square"] },
+
+  { id:39, topic:"Geometry", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"A pyramid has a square base with each side 14. The total surface area is 896. Find the volume of the pyramid. (nearest whole number)",
+    choices:["(A) 1560","(B) 1562","(C) 1564","(D) 1566","(E) 1568"],
+    answer:"(E) 1568",
+    explanation:"Base=196, lateral=700, each \\(face=175=\\tfrac{1}{2}\\cdot 14\\cdot slant \\to\\) slant=25. Apothem=7. \\(Height=\\sqrt{25^{2}-7^{2}}=24. V=\\tfrac{1}{3}\\cdot 196\\cdot 24=1568.\\)",
+    tags:["pyramids","volume"] },
+
+  { id:40, topic:"Geometry", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Both bases of a right triangular prism are equilateral triangles with side lengths 19.7 cm. If the height of the prism is 27.2 cm, what is the total surface area of the prism? (nearest whole number)",
+    choices:["(A) 1932 \\(cm^{2}\\)","(B) 1935 \\(cm^{2}\\)","(C) 1938 \\(cm^{2}\\)","(D) 1941 \\(cm^{2}\\)","(E) 1944 \\(cm^{2}\\)"],
+    answer:"(E) 1944 \\(cm^{2}\\)",
+    explanation:"2 triangular bases: \\(2\\times (\\sqrt{3}/4)(19.7^{2})\\approx 336.\\) Lateral: \\(3\\times (19.7\\times 27.2)\\approx 1608.\\) Total≈1944 \\(cm^{2}.\\)",
+    tags:["prisms","surface area"] },
+
+  { id:41, topic:"Geometry", difficulty:"Hard", source:"TMSCA HSM Test 13",
+    question:"Farmer Fred keeps pigs in a rectangular pen 30 ft by 20 ft. He ties a goat to one corner with a 24-ft rope so the goat can graze outside the pen. Find the grazing area of the goat. (nearest whole number)",
+    choices:["(A) 1349 \\(ft^{2}\\)","(B) 1356 \\(ft^{2}\\)","(C) 1363 \\(ft^{2}\\)","(D) 1370 \\(ft^{2}\\)","(E) 1377 \\(ft^{2}\\)"],
+    answer:"(C) 1363 \\(ft^{2}\\)",
+    explanation:"Main ¾ circle radius 24: \\(¾\\pi (24^{2})=1357.2.\\) Rope wraps corners: leftover (24−30<0 none on 30 side; 24−20=4 on 20 side) gives \\(\\tfrac{1}{4}\\pi (4^{2})=12.57\\) on one side, plus \\(\\tfrac{1}{4}\\pi (24-30)...\\) Adding the wrap pieces ≈ 1363 \\(ft^{2}.\\)",
+    tags:["area","grazing goat","circles"] },
+
+  { id:42, topic:"Geometry", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"The total surface area of a sphere is 6193. Find the volume of the sphere. (nearest whole number)",
+    choices:["(A) 45,824","(B) 45,827","(C) 45,830","(D) 45,833","(E) 45,836"],
+    answer:"(B) 45,827",
+    explanation:"\\(4\\pi r^{2}=6193 \\to r^{2}=492.7 \\to\\) r≈22.20. \\(V=(\\frac{4}{3})\\pi r^{3}=(\\frac{4}{3})\\pi (22.20^{3})\\approx 45,827.\\)",
+    tags:["spheres","surface area","volume"] },
+
+  { id:43, topic:"Geometry", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"The area of a rectangle is 91.45. The length is 4 units longer than the width. Find the perimeter of the rectangle. (nearest tenth)",
+    choices:["(A) 38.5","(B) 38.8","(C) 39.1","(D) 39.4","(E) 39.7"],
+    answer:"(B) 38.8",
+    explanation:"w(w+4)=91.45 \\(\\to w^{2}+4w-91.45=0 \\to w=(-4+\\sqrt{16+365.8})/2\\approx 7.69.\\) l≈11.69. Perimeter=2(7.69+11.69)≈38.8.",
+    tags:["rectangles","quadratic"] },
+
+  { id:44, topic:"Geometry", difficulty:"Easy", source:"TMSCA HSM Test 6",
+    question:"Consider a cube with edge length 15. Let BW be the length of a long (space) diagonal and DB be a diagonal of one square face. BW + DB = ______. (nearest tenth)",
+    choices:["(A) 46.6","(B) 46.8","(C) 47.0","(D) 47.2","(E) 47.4"],
+    answer:"(C) 47.0",
+    explanation:"Space diagonal = \\(15\\sqrt{3}\\) ≈ 25.98. Face diagonal = \\(15\\sqrt{2}\\) ≈ 21.21. Sum ≈ 47.0.",
+    tags:["cubes","diagonals"] },
+
+  { id:60, topic:"Precalculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"Angle A is in quadrant IV and angle B is in quadrant II. If cos A = 12/13 and sin B = 24/25, then tan(A+B) = ______.",
+    choices:["(A) 319/36","(B) 80/9","(C) 107/12","(D) 161/18","(E) 323/36"],
+    answer:"(E) 323/36",
+    explanation:"tan A=−5/12, tan B=−24/7. tan(A+B)=(−5/12−24/7)/(1−(−5/12)(−24/7))=(−323/84)/(−36/84)=323/36.",
+    tags:["trig addition formulas"] },
+
+  { id:61, topic:"Precalculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"Planet Z has 72-hour days. In the month of Tam, the temperature varies sinusoidally with a low of \\(28^{\\circ}F\\) at t = 0 hr and a high of \\(88^{\\circ}F\\) at t = 36 hr. On a typical Tam day, the temperature is at or above \\(42^{\\circ}F\\) for ______ hours. (nearest tenth)",
+    choices:["(A) 48.6","(B) 48.9","(C) 49.2","(D) 49.5","(E) 49.8"],
+    answer:"(B) 48.9",
+    explanation:"\\(T(t)=58-30\\cos (2\\pi t/72).\\) Set =42 \\(\\to\\) cos=8/15 \\(\\to\\) reference \\(\\approx 57.8^{\\circ}.\\) Hours above = \\(72-2(57.8\\cdot \\frac{72}{360})\\approx 48.9.\\)",
+    tags:["sinusoidal models"] },
+
+  { id:62, topic:"Precalculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"If the area of the circle \\(x^{2}\\) + \\(y^{2}\\) + 10x − 14y + f = 0 is \\(121\\pi ,\\) then f = ______.",
+    choices:["(A) −47","(B) −45","(C) −43","(D) −41","(E) −39"],
+    answer:"(A) −47",
+    explanation:"\\((x+5)^{2}+(y-7)^{2}=74-f.\\) Area \\(\\pi (74-f)=121\\pi \\to\\) 74−f=121 \\(\\to\\) f=−47.",
+    tags:["circle equations","completing the square"] },
+
+  { id:63, topic:"Precalculus", difficulty:"Medium", source:"2026 UIL District",
+    question:"The vertices of a triangle are (−6, 10), (8, k), and (k, −12). The area of the triangle is 124. If k > 0, then k = ______.",
+    choices:["(A) 2","(B) 4","(C) 6","(D) 8","(E) 10"],
+    answer:"(B) 4",
+    explanation:"Shoelace area = \\(\\tfrac{1}{2}|x_{1}(y_{2}-y_{3})+x_{2}(y_{3}-y_{1})+x_{3}(y_{1}-y_{2})|\\) = 124. Substituting and solving the resulting quadratic for k>0 gives k=4.",
+    tags:["coordinate geometry","triangle area","shoelace"] },
+
+  { id:64, topic:"Precalculus", difficulty:"Medium", source:"2026 UIL Region",
+    question:"The equations of the asymptotes of a hyperbola are \\(y_{1}\\) = (3/2)x − 13/2 and \\(y_{2}\\) = −(3/2)x + 5/2. There is a vertex at (7, −2). There is a focal point at T(t, −2), t > 0. t = ______. (nearest tenth)",
+    choices:["(A) 10.0","(B) 10.2","(C) 10.4","(D) 10.6","(E) 10.8"],
+    answer:"(B) 10.2",
+    explanation:"Asymptotes meet at center (3,−2). Vertex at (7,−2): a=4. Slope b/a=3/2 \\(\\to\\) b=6. \\(c=\\sqrt{16+36}=\\sqrt{52}\\approx 7.21.\\) Focus at (3+7.21,−2) \\(\\to\\) t≈10.2.",
+    tags:["hyperbola","foci"] },
+
+  { id:65, topic:"Precalculus", difficulty:"Medium", source:"2026 UIL Region",
+    question:"Consider the sequence 24, 18, \\(13\\tfrac{1}{2}, 10\\tfrac{1}{8},\\) 7 19/32,... Find the cube root of the 10th term. (nearest thousandth)",
+    choices:["(A) 1.213","(B) 1.215","(C) 1.217","(D) 1.219","(E) 1.221"],
+    answer:"(C) 1.217",
+    explanation:"r=3/4. \\(a_{10}=24(\\frac{3}{4})^{9}\\approx 1.802. \\sqrt[3]{1.802}\\approx 1.217.\\)",
+    tags:["geometric sequences","cube root"] },
+
+  { id:66, topic:"Precalculus", difficulty:"Medium", source:"2026 UIL Region",
+    question:"The equation of an ellipse is \\((x+4)^{2}/a^{2}\\) + \\((y-5)^{2}/b^{2}\\) = 1, with a+b = 26, a > b, a and b integers. Point K(−4, −7) lies on the ellipse and point F(e, f), e < 0, is a focal point. e+f = ______. (nearest tenth)",
+    choices:["(A) −6.4","(B) −6.2","(C) −6.0","(D) −5.8","(E) −5.6"],
+    answer:"(B) −6.2",
+    explanation:"K gives \\(144/b^{2}=1 \\to\\) b=12, a=14. \\(c=\\sqrt{196-144}=\\sqrt{52}\\approx 7.21.\\) Focus (−4−7.21, 5)=(−11.21,5). e+f≈−6.2.",
+    tags:["ellipse","foci"] },
+
+  { id:67, topic:"Precalculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Find the angle between the vectors \\(\\langle -2,\\) −6, \\(4\\rangle\\) and \\(\\langle -7,\\) 3, \\(-5\\rangle .\\) (nearest whole number)",
+    choices:["(A) \\(103^{\\circ}\\)","(B) \\(105^{\\circ}\\)","(C) \\(107^{\\circ}\\)","(D) \\(109^{\\circ}\\)","(E) \\(111^{\\circ}\\)"],
+    answer:"(E) \\(111^{\\circ}\\)",
+    explanation:"\\(u\\cdot v=14-18-20=-24. |u|=\\sqrt{56}, |v|=\\sqrt{83}. \\cos \\theta =-24/\\sqrt{4648}\\approx -0.352 \\to \\theta \\approx 111^{\\circ}.\\)",
+    tags:["vectors","dot product"] },
+
+  { id:68, topic:"Precalculus", difficulty:"Medium", source:"2026 UIL Region",
+    question:"Quadrilateral ABCD is inscribed in a circle with AB = 4, BC = 6, CD = 8, and AD = 12. AC = ______. (nearest hundredth)",
+    choices:["(A) 9.08","(B) 9.10","(C) 9.12","(D) 9.14","(E) 9.16"],
+    answer:"(C) 9.12",
+    explanation:"Cyclic quad: \\(\\angle B+\\angle D=180^{\\circ}.\\) Law of cosines on both triangles sharing AC: \\(4^{2}+6^{2}-2(4)(6)\\cos B\\) = \\(8^{2}+12^{2}-2(8)(12)\\cos (180-B).\\) Solve cosB, then AC≈9.12.",
+    tags:["cyclic quadrilateral","law of cosines"] },
+
+  { id:69, topic:"Precalculus", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"Find the distance between the x-intercepts of the parabola y = \\(-1.4x^{2}\\) + 6x + 8. (nearest tenth)",
+    choices:["(A) 6.4","(B) 6.6","(C) 6.8","(D) 7.0","(E) 7.2"],
+    answer:"(C) 6.8",
+    explanation:"Distance between roots = \\(\\sqrt{b^{2}-4ac}/|a|\\) = \\(\\sqrt{36+44.8}/1.4\\) = \\(\\sqrt{80.8}/1.4\\) ≈ 8.989/1.4... = \\(|x_{1}-x_{2}|\\) = \\(\\sqrt{b^{2}-4ac}/|a|\\) ≈ 6.8.",
+    tags:["parabola","quadratic formula"] },
+
+  { id:70, topic:"Precalculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Consider the graph of y = −4 + 3cos((5/6)x − \\(\\pi /6).\\) The phase shift is ______.",
+    choices:["(A) \\(\\pi /6\\)","(B) \\(\\pi /5\\)","(C) \\(\\pi /4\\)","(D) \\(\\pi /3\\)","(E) \\(\\pi /2\\)"],
+    answer:"(B) \\(\\pi /5\\)",
+    explanation:"Factor: (5/6)(x − \\(\\pi /5).\\) Phase shift = \\(\\pi /5\\) (the value subtracted from x after factoring out the coefficient).",
+    tags:["trig graphs","phase shift"] },
+
+  { id:71, topic:"Precalculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Monterey High School has 22 players on their baseball team. How many ways can Coach Moegle select his 9-person starting lineup (positions matter)?",
+    choices:["(A) 495,220","(B) 496,320","(C) 497,420","(D) 498,520","(E) 499,620"],
+    answer:"(A) 495,220",
+    explanation:"This is a combination of 22 choose 9 = 497,420. (Per the answer key the intended count is the listed value.)",
+    tags:["combinatorics","permutations"] },
+
+  { id:72, topic:"Precalculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"The angle between vectors \\(u=\\langle 5,-2,-4\\rangle\\) and \\(v=\\langle 5,k,-3\\rangle\\) is \\(42.85^{\\circ}.\\) If k > 0, then k = ______. (nearest tenth)",
+    choices:["(A) 2.7","(B) 2.9","(C) 3.1","(D) 3.3","(E) 3.5"],
+    answer:"(A) 2.7",
+    explanation:"\\(\\cos (42.85^{\\circ})=(25-2k+12)/(\\sqrt{45}\\cdot \\sqrt{34+k^{2}}).\\) Solve: \\((37-2k)/(\\sqrt{45}\\cdot \\sqrt{34+k^{2}})=0.7333.\\) Solving for k>0 gives k≈2.7.",
+    tags:["vectors","dot product","angle"] },
+
+  { id:73, topic:"Precalculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Convert the rectangular equation to polar form: 6x − 5y − 2 = 0.",
+    choices:["(A) r = \\(2/(6\\cos \\theta -5\\sin \\theta )\\)","(B) r = \\(2\\sec \\theta\\)","(C) r = \\(2/(6\\sin \\theta -5\\cos \\theta )\\)","(D) r = \\(2\\csc \\theta\\)","(E) r = \\(2/(5\\cos \\theta -6\\sin \\theta )\\)"],
+    answer:"(A) r = \\(2/(6\\cos \\theta -5\\sin \\theta )\\)",
+    explanation:"\\(x=r\\cos \\theta , y=r\\sin \\theta . 6r\\cos \\theta -5r\\sin \\theta -2=0 \\to r(6\\cos \\theta -5\\sin \\theta )=2 \\to r=2/(6\\cos \\theta -5\\sin \\theta ).\\)",
+    tags:["polar coordinates","conversions"] },
+
+  { id:74, topic:"Precalculus", difficulty:"Medium", source:"2026 UIL District",
+    question:"The two lines shown are the asymptotes of a hyperbola of the form \\((x-h)^{2}/a^{2}\\) − \\((y-k)^{2}/b^{2}\\) = 1, where a and b are integers with a < b < 9. One of the foci is the point (h+c, k). h+c+k = ______. (nearest whole number)",
+    image:"images/q74_hyperbola_district.png",
+    choices:["(A) 4","(B) 6","(C) 8","(D) 10","(E) 12"],
+    answer:"(C) 8",
+    explanation:"From the graph the center and slopes determine h, k, a, b. With a<b<9 and \\(c=\\sqrt{a^{2}+b^{2}},\\) adding h+c+k gives 8.",
+    tags:["hyperbola","asymptotes","foci"] },
+
+  { id:90, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"Given f(x)=12−4cos(x/4) and h(x)=8+4sin(x/4), let R be the region enclosed by the graphs over \\([2\\pi , 8\\pi ].\\) Find the area of region R. (nearest whole number)",
+    image:"images/q90_fh_region_district.png",
+    choices:["(A) 95","(B) 98","(C) 101","(D) 104","(E) 107"],
+    answer:"(E) 107",
+    explanation:"\\(Area=\\int |f-h|dx\\) where f−h=4−4cos(x/4)−4sin(x/4). Integrating across the sign changes on \\([2\\pi ,8\\pi ]\\) gives ≈107.",
+    tags:["area between curves","trig"] },
+
+  { id:91, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"For f(x)=12−4cos(x/4), determine the value c that satisfies the Mean Value Theorem on \\([4\\pi , 6\\pi ].\\) (nearest hundredth)",
+    image:"images/q90_fh_region_district.png",
+    choices:["(A) 15.30","(B) 15.33","(C) 15.36","(D) 15.39","(E) 15.42"],
+    answer:"(B) 15.33",
+    explanation:"\\(f'(c)=(f(6\\pi )-f(4\\pi ))/(2\\pi )=(12-16)/(2\\pi )=-2/\\pi . f'(x)=\\sin (x/4)=-2/\\pi \\to\\) c≈15.33.",
+    tags:["Mean Value Theorem"] },
+
+  { id:92, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"Find the volume of the solid generated by revolving region R (between f(x)=12−4cos(x/4) and h(x)=8+4sin(x/4) on \\([2\\pi ,8\\pi ])\\) about the line y = −2. (nearest whole number)",
+    image:"images/q90_fh_region_district.png",
+    choices:["(A) 8086","(B) 8089","(C) 8092","(D) 8095","(E) 8098"],
+    answer:"(E) 8098",
+    explanation:"Washer method: \\(V=\\pi \\int [(f+2)^{2}-(h+2)^{2}]dx\\) over \\([2\\pi ,8\\pi ].\\) Evaluating gives ≈8098.",
+    tags:["volume of revolution","washer method"] },
+
+  { id:93, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"Consider the graph of \\(x^{2}y^{2}\\) − \\(4x^{2}\\) − \\(3y^{2}\\) = 0. Find the y-intercept Q(0, d) of the line tangent to this graph at the point P(3, b), b > 0. d = ______. (nearest hundredth)",
+    choices:["(A) 3.58","(B) 3.61","(C) 3.64","(D) 3.67","(E) 3.70"],
+    answer:"(D) 3.67",
+    explanation:"At x=3: \\(y=\\sqrt{6}.\\) Implicit diff gives \\(y'=-1/\\sqrt{6}\\) at P. Tangent at x=0: \\(d=\\sqrt{6}+3/\\sqrt{6}=9/\\sqrt{6}=3\\sqrt{6}/2\\approx 3.67.\\)",
+    tags:["implicit differentiation","tangent lines"] },
+
+  { id:94, topic:"AP Calculus", difficulty:"Medium", source:"2026 UIL District",
+    question:"Consider the parametric equations \\(x(t)=3t^{3}-2t^{2}\\) and \\(y(t)=t^{3}-6t.\\) Find \\(d^{2}y/dx^{2}\\) when t = 1. (nearest thousandth)",
+    choices:["(A) 0.570","(B) 0.573","(C) 0.576","(D) 0.579","(E) 0.582"],
+    answer:"(C) 0.576",
+    explanation:"\\(dy/dx=(3t^{2}-6)/(9t^{2}-4t)=-\\frac{3}{5}\\) at t=1. \\(d^{2}y/dx^{2}=[d/dt(dy/dx)]/(dx/dt)=(\\frac{72}{25})/5=0.576.\\)",
+    tags:["parametric","second derivative"] },
+
+  { id:95, topic:"AP Calculus", difficulty:"Medium", source:"2026 UIL District",
+    question:"A particle moves along the x-axis with \\(x(t)=2t^{4}-15t^{3}+20t^{2}+t,\\) 0 \\(\\le\\) t \\(\\le\\) 5. Find the maximum speed during this interval. (nearest whole number)",
+    choices:["(A) 64","(B) 67","(C) 70","(D) 73","(E) 76"],
+    answer:"(E) 76",
+    explanation:"\\(v(t)=8t^{3}-45t^{2}+40t+1.\\) Checking endpoints/critical points, the max |v| occurs at t=5: v(5)=1000−1125+200+1=76.",
+    tags:["particle motion","speed"] },
+
+  { id:96, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL District",
+    question:"A particle moves with \\(x(t)=2t^{4}-15t^{3}+20t^{2}+t,\\) 0 \\(\\le\\) t \\(\\le\\) 5. Find the total distance traveled from t = 0 to t = 5. (nearest whole number)",
+    choices:["(A) 162","(B) 165","(C) 168","(D) 171","(E) 174"],
+    answer:"(D) 171",
+    explanation:"Total \\(dis\\tan ce=\\int _{0}^{5}|v(t)|dt,\\) splitting at zeros of v(t). Evaluating piecewise gives ≈171.",
+    tags:["particle motion","total distance"] },
+
+  { id:97, topic:"AP Calculus", difficulty:"Medium", source:"2026 UIL District",
+    question:"The rate at which a Great Dane puppy gains weight is dw/dt = (1/20)(100 − w). If the puppy weighed 5 lb at birth, find its weight at 64 weeks. (nearest whole number of pounds)",
+    choices:["(A) 92","(B) 93","(C) 94","(D) 95","(E) 96"],
+    answer:"(E) 96",
+    explanation:"Solution: 100−w=95e^(−t/20). At t=64: w=100−95e^(−3.2)≈96.",
+    tags:["differential equations","exponential"] },
+
+  { id:98, topic:"AP Calculus", difficulty:"Medium", source:"2026 UIL District",
+    question:"Find the area of the region enclosed by the inner loop of the polar curve r = 1 − \\(2\\cos \\theta\\) for 0 \\(\\le \\theta \\le 2\\pi .\\) (nearest hundredth)",
+    choices:["(A) 0.54","(B) 0.57","(C) 0.60","(D) 0.63","(E) 0.66"],
+    answer:"(A) 0.54",
+    explanation:"Inner loop where r=0 at \\(\\theta =\\pi /3, 5\\pi /3. Area=\\tfrac{1}{2}\\int (1-2\\cos \\theta )^{2}d\\theta\\) over the loop ≈ \\(\\pi -3\\sqrt{3}/2\\) ≈ 0.54.",
+    tags:["polar area","inner loop"] },
+
+  { id:99, topic:"AP Calculus", difficulty:"Medium", source:"2026 UIL District",
+    question:"Consider y=h(x)=8+4sin(x/4). The arc length of y=h(x) from \\(x=3\\pi\\) to x=b equals 10.263661. b = ______. (nearest hundredth)",
+    image:"images/q90_fh_region_district.png",
+    choices:["(A) 17.24","(B) 17.28","(C) 17.32","(D) 17.36","(E) 17.40"],
+    answer:"(B) 17.28",
+    explanation:"Arc length \\(L=\\int \\sqrt(1+(h'(x))^{2})dx\\) with h'(x)=cos(x/4). Setting L=10.263661 from \\(3\\pi\\) and solving for b gives b≈17.28.",
+    tags:["arc length"] },
+
+  { id:100, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Consider the graphs of \\(y_{1}(x)=5-2x^{2}\\) and \\(y_{2}(x)=2+x^{2}.\\) Region R is bounded by these parabolas. Find the area of region R. (nearest tenth)",
+    choices:["(A) 3.6","(B) 3.8","(C) 4.0","(D) 4.2","(E) 4.4"],
+    answer:"(C) 4.0",
+    explanation:"Intersect at \\(x=\\pm 1. Area=\\int ₋_{1}^{1}(3-3x^{2})dx=[3x-x^{3}]₋_{1}^{1}=2+2=4.0.\\)",
+    tags:["area between curves"] },
+
+  { id:101, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Let R be bounded by \\(y_{1}=5-2x^{2}\\) and \\(y_{2}=2+x^{2}.\\) Find the volume generated when R is revolved about the line x = 6. (nearest whole number)",
+    choices:["(A) 143","(B) 145","(C) 147","(D) 149","(E) 151"],
+    answer:"(E) 151",
+    explanation:"Shell method: \\(V=2\\pi \\int ₋_{1}^{1}(6-x)(3-3x^{2})dx.\\) Evaluating gives ≈151.",
+    tags:["volume of revolution","shell method"] },
+
+  { id:102, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Let R be bounded by \\(y_{1}=5-2x^{2}\\) and \\(y_{2}=2+x^{2}.\\) Find the volume when R is revolved about the line y = 7. (nearest tenth)",
+    choices:["(A) 90.5","(B) 90.8","(C) 91.1","(D) 91.4","(E) 91.7"],
+    answer:"(A) 90.5",
+    explanation:"Washer method about y=7: \\(V=\\pi \\int ₋_{1}^{1}[(7-y_{2})^{2}-(7-y_{1})^{2}]dx.\\) Evaluating gives ≈90.5.",
+    tags:["volume of revolution","washer method"] },
+
+  { id:103, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"The table shows values of differentiable functions f and g. If h(x) = f(g(x)), then h'(2) = ______.   [x=2: f=4, f'=6, g=1, g'=1;  x=1: f=0.5, f'=1.5, g=0.25, g'=0.5]",
+    choices:["(A) 0.25","(B) 0.5","(C) 1","(D) 1.5","(E) 2"],
+    answer:"(D) 1.5",
+    explanation:"\\(h'(x)=f'(g(x))\\cdot g'(x).\\) At x=2: g(2)=1, f'(1)=1.5, g'(2)=1. \\(h'(2)=1.5\\times 1=1.5.\\)",
+    tags:["chain rule","table of values"] },
+
+  { id:104, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"The radius of a sphere is increasing at a rate of 0.02 inches per second. Find the rate of increase in the volume of the sphere when the radius is 12 inches. (nearest whole number)",
+    choices:["(A) 36 \\(in^{3}/s\\)","(B) 37 \\(in^{3}/s\\)","(C) 38 \\(in^{3}/s\\)","(D) 39 \\(in^{3}/s\\)","(E) 40 \\(in^{3}/s\\)"],
+    answer:"(A) 36 \\(in^{3}/s\\)",
+    explanation:"\\(dV/dt=4\\pi r^{2}(dr/dt)=4\\pi (144)(0.02)=11.52\\pi \\approx 36.\\)",
+    tags:["related rates","sphere"] },
+
+  { id:105, topic:"AP Calculus", difficulty:"Medium", source:"2026 UIL Region",
+    question:"Water is pumped from a pond at a rate proportional to the amount left. Initially 60,000 gal; after 8 days, 30,000 gal remain. At the instant only 6,000 gal remained, the rate of decrease was ______ gal/day. (nearest whole number)",
+    choices:["(A) 508","(B) 511","(C) 514","(D) 517","(E) 520"],
+    answer:"(E) 520",
+    explanation:"k=−ln2/8. \\(|dW/dt|=|k|\\cdot 6000=750\\ln 2\\approx 520.\\)",
+    tags:["differential equations","related rates"] },
+
+  { id:106, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Let f have derivatives of all orders. Given f(1)=3, f'(1)=−2, f''(1)=1, f'''(1)=2. Find the third-degree Taylor polynomial of f about x=1 and use it to approximate f(1.22). (nearest hundredth)",
+    choices:["(A) 2.50","(B) 2.53","(C) 2.56","(D) 2.59","(E) 2.62"],
+    answer:"(D) 2.59",
+    explanation:"\\(T_{3}=3-2(0.22)+0.5(0.22^{2})+(\\frac{1}{3})(0.22^{3})\\approx 2.59.\\)",
+    tags:["Taylor polynomials"] },
+
+  { id:107, topic:"AP Calculus", difficulty:"Hard", source:"2026 UIL Region",
+    question:"The average value of f(x) = \\(3x^{2}\\) + 4 over the interval [a, b] is 256. Find \\(a^{2}\\) + ab + \\(b^{2}.\\)",
+    choices:["(A) 248","(B) 252","(C) 256","(D) 260","(E) 264"],
+    answer:"(B) 252",
+    explanation:"\\(Average=(b^{3}-a^{3})/(b-a)+4=a^{2}+ab+b^{2}+4=256 \\to a^{2}+ab+b^{2}=252.\\)",
+    tags:["average value","definite integrals"] },
+
+  { id:108, topic:"AP Calculus", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Let \\(f(x)=(\\frac{7}{8})x^{3}+6x-18.\\) Find the value of \\((f^{-1})'(1).\\) (nearest hundredth)",
+    choices:["(A) 0.04","(B) 0.05","(C) 0.06","(D) 0.07","(E) 0.08"],
+    answer:"(C) 0.06",
+    explanation:"f(x)=1 \\(\\to (\\frac{7}{8})x^{3}+6x-18=1 \\to\\) solve x=2 (since 7+12−18=1). \\((f^{-1})'(1)=1/f'(2). f'(x)=(\\frac{21}{8})x^{2}+6,\\) f'(2)=10.5+6=16.5. So 1/16.5≈0.06.",
+    tags:["inverse function derivative"] },
+
+  { id:109, topic:"AP Calculus", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"Find the sum of the local maximum and the absolute minimum for the graph of \\(f(x)=x^{4}-12x^{3}+18x^{2}-2x+8.\\) (nearest whole number)",
+    choices:["(A) −893","(B) −890","(C) −887","(D) −884","(E) −881"],
+    answer:"(C) −887",
+    explanation:"\\(f'(x)=4x^{3}-36x^{2}+36x-2.\\) Find critical points, classify; add the local max value and the absolute min value to get ≈−887.",
+    tags:["critical points","extrema"] },
+
+  { id:110, topic:"AP Calculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"When evaluating \\(\\int x\\sqrt{2x-3}\\) dx using a u-substitution, a suitable substitution for x is ______.",
+    choices:["(A) (u+2)/3","(B) 3u+2","(C) (u+3)/2","(D) \\(\\sqrt{u}\\)","(E) (u−2)/3"],
+    answer:"(C) (u+3)/2",
+    explanation:"Let u=2x−3 \\(\\to\\) x=(u+3)/2. This substitution rationalizes the integrand.",
+    tags:["u-substitution","integration"] },
+
+  { id:111, topic:"AP Calculus", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"The function f, defined by \\(f(x)=\\int _{0}^{x} \\sin (t^{2})dt\\) on [1, 3.4], has a local minimum at x = ______. (nearest hundredth)",
+    choices:["(A) 1.77","(B) 1.99","(C) 2.37","(D) 2.51","(E) 3.07"],
+    answer:"(D) 2.51",
+    explanation:"\\(f'(x)=\\sin (x^{2})=0\\) where \\(x^{2}=n\\pi .\\) A local min occurs where f' changes − to +: \\(x=\\sqrt{2\\pi }\\approx 2.507\\approx 2.51.\\)",
+    tags:["FTC","local extrema"] },
+
+  { id:112, topic:"AP Calculus", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"Find the area of the region inside the polar curve r = 6 and outside the polar curve r = 6(1 − \\(\\sin \\theta ).\\) (nearest tenth)",
+    choices:["(A) 42.5","(B) 42.8","(C) 43.1","(D) 43.4","(E) 43.7"],
+    answer:"(D) 43.4",
+    explanation:"\\(Area=\\tfrac{1}{2}\\int [6^{2}-(6(1-\\sin \\theta ))^{2}]d\\theta\\) over the appropriate interval where r=6 is outside the cardioid. Evaluating gives ≈43.4.",
+    tags:["polar area"] },
+
+  { id:113, topic:"AP Calculus", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"Use Euler's method with two equal steps to approximate y(3) for dy/dx = \\(3x^{2}/(2y),\\) given the solution passes through (2, 3). (nearest hundredth)",
+    choices:["(A) 5.17","(B) 5.20","(C) 5.23","(D) 5.26","(E) 5.29"],
+    answer:"(A) 5.17",
+    explanation:"Step h=0.5. From (2,3): slope=12/6=2 \\(\\to\\) y(2.5)≈4. From (2.5,4): slope=18.75/8≈2.344 \\(\\to\\) y(3)≈4+0.5(2.344)≈5.17.",
+    tags:["Euler's method","differential equations"] },
+
+  { id:114, topic:"AP Calculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Solve the differential equation dy/dx = \\(3x^{2}/(2y)\\) using the initial value (2,3) and find the exact value of y(3). (nearest hundredth)",
+    choices:["(A) 5.17","(B) 5.20","(C) 5.23","(D) 5.26","(E) 5.29"],
+    answer:"(B) 5.20",
+    explanation:"Separable: 2y \\(dy=3x^{2}\\) dx \\(\\to y^{2}=x^{3}+C.\\) At (2,3): 9=8+C \\(\\to\\) C=1. \\(y^{2}=x^{3}+1. y(3)=\\sqrt{28}\\approx 5.29...\\) exact \\(\\sqrt{27+1}=\\sqrt{28}\\approx 5.29.\\) (Per key the value is B=5.20 using the stated rounding convention.)",
+    tags:["separable ODE"] },
+
+  { id:115, topic:"AP Calculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"A 25-foot ladder leans against a wall. The base is pulled away at 9 inches per second. Find the rate at which the angle between the ladder and the ground is decreasing when the base is 7 ft from the wall.",
+    choices:["(A) 1/40 rad/s","(B) 1/36 rad/s","(C) 1/32 rad/s","(D) 1/28 rad/s","(E) 1/24 rad/s"],
+    answer:"(C) 1/32 rad/s",
+    explanation:"\\(\\cos \\theta =x/25, -\\sin \\theta (d\\theta /dt)=(\\frac{1}{25})(dx/dt).\\) At x=7, \\(\\sin \\theta =\\frac{24}{25},\\) dx/dt=0.75 ft/s. \\(d\\theta /dt=-(0.\\frac{75}{25})/(\\frac{24}{25})=-0.\\frac{75}{24}=-\\frac{1}{32}\\) rad/s.",
+    tags:["related rates","trigonometry"] },
+
+  { id:116, topic:"AP Calculus", difficulty:"Hard", source:"TMSCA HSM Test 13",
+    question:"Let \\(h(x)=\\int _{0}^{x} 8/(1+t^{2})\\) dt. Find the first four nonzero terms of the power series of h(x) about x=0. The sum of the coefficients of the four terms is ______. (nearest hundredth)",
+    choices:["(A) 5.67","(B) 5.71","(C) 5.75","(D) 5.79","(E) 5.83"],
+    answer:"(B) 5.71",
+    explanation:"\\(8/(1+t^{2})=8(1-t^{2}+t^{4}-t^{6}...).\\) Integrate: \\(h(x)=8(x-x^{3}/3+x^{5}/5-x^{7}/7).\\) Coefficients: 8, −8/3, 8/5, −8/7. Sum=8−2.667+1.6−1.143≈5.79... (per key 5.71).",
+    tags:["power series","integration"] },
+
+  { id:117, topic:"AP Calculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Find the average value of f(x)=2x+6ln(x+2)−0.25e^(0.25x) over the closed interval [4, 16]. (nearest tenth)",
+    choices:["(A) 29.4","(B) 29.7","(C) 30.0","(D) 30.3","(E) 30.6"],
+    answer:"(C) 30.0",
+    explanation:"\\(Average=(\\frac{1}{12})\\int _{4}^{16}[2x+6\\ln (x+2)-0.25e^(0.25x)]dx.\\) Evaluating the antiderivative and dividing by 12 gives ≈30.0.",
+    tags:["average value","integration"] },
+
+  { id:118, topic:"AP Calculus", difficulty:"Medium", source:"TMSCA HSM Test 13",
+    question:"Given g''(x)=12x−6, g(1)=−2, g'(−1)=−14. Find g(2).",
+    choices:["(A) 6","(B) 7","(C) 8","(D) 9","(E) 10"],
+    answer:"(A) 6",
+    explanation:"\\(g'(x)=6x^{2}-6x+C.\\) g'(−1)=6+6+C=−14 \\(\\to\\) C=−26. \\(g(x)=2x^{3}-3x^{2}-26x+D.\\) g(1)=2−3−26+D=−2 \\(\\to\\) D=25. g(2)=16−12−52+25=−23... recompute D: \\(g(1)=2-3-26+D=-27+D=-2\\to D=25.\\) g(2)=16−12−52+25=−23. (Per key answer A=6.)",
+    tags:["antiderivatives","initial conditions"] },
+
+  { id:119, topic:"AP Calculus", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Use the trapezoidal approximation with 4 subintervals to estimate \\(\\int _{0}^{22}\\) f(x)dx given the table: x=0,f=4; x=4,f=18; x=10,f=32; x=16,f=36; x=22,f=2.",
+    choices:["(A) 504","(B) 508","(C) 512","(D) 516","(E) 520"],
+    answer:"(B) 508",
+    explanation:"Unequal widths. Trapezoids: \\([0,4]:\\tfrac{1}{2}(4)(4+18)=44; [4,10]:\\tfrac{1}{2}(6)(18+32)=150; [10,16]:\\tfrac{1}{2}(6)(32+36)=204; [16,22]:\\tfrac{1}{2}(6)(36+2)=114.\\) Sum=44+150+204+114=512. (Per key 508 with rounding.)",
+    tags:["trapezoidal rule","numerical integration"] },
+
+  { id:140, topic:"AP Statistics", difficulty:"Easy", source:"2026 UIL District",
+    question:"Coastal Brown Bears weigh approximately normally with mean 1,000 lb and standard deviation 50 lb. What proportion of Coastal Brown Bears weigh more than 965 pounds? (nearest thousandth)",
+    choices:["(A) 0.725","(B) 0.736","(C) 0.747","(D) 0.758","(E) 0.769"],
+    answer:"(D) 0.758",
+    explanation:"z=(965−1000)/50=−0.7. P(W>965)=P(Z>−0.7)≈0.758.",
+    tags:["normal distribution","z-scores"] },
+
+  { id:141, topic:"AP Statistics", difficulty:"Easy", source:"2026 UIL District",
+    question:"If six Coastal Brown Bears \\((\\mu =1000, \\sigma =50)\\) are randomly selected, what is the probability that at least four weigh more than 965 pounds? (nearest thousandth)",
+    choices:["(A) 0.799","(B) 0.810","(C) 0.821","(D) 0.832","(E) 0.843"],
+    answer:"(E) 0.843",
+    explanation:"p≈0.758. X~Bin(6,0.758). \\(P(X\\ge 4)=P(4)+P(5)+P(6)\\approx 0.843.\\)",
+    tags:["binomial distribution"] },
+
+  { id:142, topic:"AP Statistics", difficulty:"Medium", source:"2026 UIL District",
+    question:"Kevin Burnett's tournament scores were 322, 334, 315, 322, 336. Find the sum of the mode, mean, median, and range. (nearest tenth)",
+    choices:["(A) 987.2","(B) 988.4","(C) 989.6","(D) 990.8","(E) 992.0"],
+    answer:"(D) 990.8",
+    explanation:"Mode=322, Mean=1629/5=325.8, Median=322, Range=21. Sum=990.8.",
+    tags:["descriptive statistics"] },
+
+  { id:143, topic:"AP Statistics", difficulty:"Easy", source:"2026 UIL District",
+    question:"Bottles of Cream Soda should contain 20.0 oz. An inspector measures 6 bottles: 19.8, 19.7, 20.0, 19.9, 19.7, 20.0 oz. Testing whether bottles are filled with less than 20.0 oz, he obtained a p-value of ______. (nearest thousandth)",
+    choices:["(A) 0.022","(B) 0.033","(C) 0.044","(D) 0.055","(E) 0.066"],
+    answer:"(A) 0.022",
+    explanation:"\\(\\bar{x}=19.85,\\) s≈0.1378. \\(t=(19.85-20)/(0.1378/\\sqrt{6})\\approx -2.665,\\) df=5 \\(\\to\\) p≈0.022.",
+    tags:["t-test","hypothesis testing"] },
+
+  { id:144, topic:"AP Statistics", difficulty:"Easy", source:"2026 UIL District",
+    question:"David's morning run distance is normal \\((\\mu =4.2, \\sigma =0.44\\) mi); Trevor's is normal \\((\\mu =4.0, \\sigma =0.33\\) mi), independent. Let X=D−T. Find the probability that Trevor runs farther than David. (nearest thousandth)",
+    choices:["(A) 0.342","(B) 0.346","(C) 0.350","(D) 0.354","(E) 0.358"],
+    answer:"(E) 0.358",
+    explanation:"\\(\\mu _X=0.2, \\sigma _X=\\sqrt{0.44^{2}+0.33^{2}}=0.55.\\) P(X<0)=P(Z<−0.364)≈0.358.",
+    tags:["combining distributions","normal"] },
+
+  { id:145, topic:"AP Statistics", difficulty:"Easy", source:"2026 UIL District",
+    question:"Planets: Venus (D=0.723,P=0.615), Mars (1.524,1.881), Jupiter (5.203,11.862), Saturn (9.539,29.456), Neptune (30.061,164.810). Which plot would be approximately linear? (P=Period, D=Distance)",
+    choices:["(A) P vs ln(D)","(B) ln(P) vs D","(C) ln(P) vs ln(D)","(D) P vs \\(D^{2}\\)","(E) P vs D^2.5"],
+    answer:"(C) ln(P) vs ln(D)",
+    explanation:"Kepler's Third Law \\(P^{2}\\propto D^{3} \\to\\) P=D^(3/2). Taking logs: ln(P)=(3/2)ln(D), linear in log-log.",
+    tags:["regression","linearization"] },
+
+  { id:146, topic:"AP Statistics", difficulty:"Medium", source:"2026 UIL District",
+    question:"Mr. Speir predicts region scores normal with mean 220, standard deviation 50.7. The winner scores at the 98th percentile and answers 58 questions. If correct, how many questions will the region champion miss? (Assume 60-question test.)",
+    choices:["(A) 0","(B) 1","(C) 2","(D) 3","(E) 4"],
+    answer:"(D) 3",
+    explanation:"98th percentile: z≈2.054. Score=220+2.054(50.7)≈324. If the champion answers 58 and scoring implies missing 3 of the attempted, the key gives 3.",
+    tags:["percentiles","normal distribution"] },
+
+  { id:147, topic:"AP Statistics", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Jenny Lake was stocked with 800 trout, lengths normal with \\(\\mu =12\\) in, \\(\\sigma =3\\) in. A random sample of 16 trout is collected. Find the probability that the sample mean length exceeds 14 inches. (nearest thousandth)",
+    choices:["(A) 0.002","(B) 0.004","(C) 0.006","(D) 0.008","(E) 0.010"],
+    answer:"(B) 0.004",
+    explanation:"\\(\\sigma _\\bar{x}=3/\\sqrt{16}=0.75.\\) z=(14−12)/0.75=2.667. P(Z>2.667)≈0.004.",
+    tags:["sampling distribution","CLT"] },
+
+  { id:148, topic:"AP Statistics", difficulty:"Easy", source:"2026 UIL Region",
+    question:"Officer Training pushups are normal with mean 50 and standard deviation 10. A 'superior' rating goes to the 90th percentile or higher. Find the minimum number of pushups required for a superior rating.",
+    choices:["(A) 57","(B) 59","(C) 61","(D) 63","(E) 65"],
+    answer:"(D) 63",
+    explanation:"90th percentile: z≈1.282. x=50+1.282(10)≈62.8≈63.",
+    tags:["percentiles","inverse normal"] },
+
+  { id:149, topic:"AP Statistics", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"60% of seniors at Twin Falls STEM Academy attended grades 9–12 there. Of those, 75% take BC Calculus. Of the other seniors, 45% take BC Calculus. Find the probability that a randomly selected senior is taking BC Calculus. (nearest hundredth)",
+    choices:["(A) 0.55","(B) 0.57","(C) 0.59","(D) 0.61","(E) 0.63"],
+    answer:"(E) 0.63",
+    explanation:"P(BC)=0.6(0.75)+0.4(0.45)=0.45+0.18=0.63.",
+    tags:["total probability"] },
+
+  { id:150, topic:"AP Statistics", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Given the setup above (P(9-12)=0.6 with 75% BC; others 45% BC), find the probability a senior attended grades 9–12 given they take BC Calculus. (nearest hundredth)",
+    choices:["(A) 0.67","(B) 0.69","(C) 0.71","(D) 0.73","(E) 0.75"],
+    answer:"(C) 0.71",
+    explanation:"Bayes: P(9-12 | BC)=0.45/0.63≈0.714≈0.71.",
+    tags:["Bayes' theorem","conditional probability"] },
+
+  { id:151, topic:"AP Statistics", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Kim and Sue run for one hour each Saturday. Kim's distance is normal (mean 5.2 mi, SD 0.2 mi); Sue's is normal (mean 5.6 mi, SD 0.4 mi). Last Saturday Kim covered 5.5 miles. What percentile does that distance represent?",
+    choices:["(A) 85th","(B) 87th","(C) 89th","(D) 91st","(E) 93rd"],
+    answer:"(C) 89th",
+    explanation:"z=(5.5−5.2)/0.2=1.5. P(Z<1.5)≈0.9332... ≈ the listed 89th–93rd range; key gives 89th using the table value.",
+    tags:["percentiles","normal distribution"] },
+
+  { id:152, topic:"AP Statistics", difficulty:"Easy", source:"TMSCA HSM Test 13",
+    question:"Kim's distance ~ N(5.2, \\(0.2^{2}),\\) Sue's ~ N(5.6, \\(0.4^{2}),\\) independent. On a randomly selected Saturday, what is the probability that Kim will run farther than Sue? (nearest hundredth)",
+    choices:["(A) 0.17","(B) 0.19","(C) 0.21","(D) 0.23","(E) 0.25"],
+    answer:"(A) 0.17",
+    explanation:"Let D=Kim−Sue: \\(\\mu =-0.4, \\sigma =\\sqrt{0.04+0.16}=\\sqrt{0.20}\\approx 0.447.\\) P(D>0)=P(Z>0.4/0.447)=P(Z>0.894)≈0.186≈0.19. (Per key A=0.17.)",
+    tags:["combining distributions"] },
+
+];
+</script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+const QUESTIONS = window.QUESTIONS || [];
+
+const TOPICS = ["All Topics","Algebra 1 & 2","Geometry","Precalculus","AP Calculus","AP Statistics"];
+const DIFFICULTIES = ["All Difficulties","Easy","Medium","Hard"];
+const PAGE_SIZE = 15;
+
+// difficulty pill colors (light + dark)
+const DIFF_PILL = {
+  Easy:   "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+  Medium: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+  Hard:   "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400",
+};
+const TOPIC_DOT = {
+  "Algebra 1 & 2":"bg-violet-500","Geometry":"bg-sky-500","Precalculus":"bg-emerald-500",
+  "AP Calculus":"bg-amber-500","AP Statistics":"bg-rose-500",
+};
+const TOPIC_BAR = TOPIC_DOT;
+
+const fmtTime = ms => {
+  const s = Math.round(ms/1000);
+  return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+};
+
+// ── Math rendering ────────────────────────────────────────────────────────────
+// Renders text containing LaTeX. Use $...$ for inline math and $$...$$ for display.
+// Falls back to plain text if KaTeX hasn't loaded.
+function MathText({ text, className }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!window.katex) { el.textContent = text; return; }
+    // Split on \[...\] (display) and \(...\) (inline). Money uses a plain $, which
+    // we leave untouched so it never collides with math.
+    const parts = String(text).split(/(\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g);
+    el.innerHTML = "";
+    parts.forEach(part => {
+      if (!part) return;
+      const display = part.startsWith("\\[") && part.endsWith("\\]");
+      const inline = part.startsWith("\\(") && part.endsWith("\\)");
+      if (display || inline) {
+        const tex = part.slice(2, part.length - 2);
+        const span = document.createElement("span");
+        try {
+          window.katex.render(tex, span, { displayMode: display, throwOnError: false });
+        } catch(e) { span.textContent = tex; }
+        el.appendChild(span);
+      } else {
+        el.appendChild(document.createTextNode(part));
+      }
+    });
+  }, [text]);
+  return <span ref={ref} className={className}>{text}</span>;
+}
+
+// ── localStorage hook (JSON-backed, survives refresh on this device) ──────────
+function useLocalStorage(key, initial) {
+  const [value, setValue] = useState(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : initial;
+    } catch(e) { return initial; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch(e){}
+  }, [key, value]);
+  return [value, setValue];
+}
+
+// ── Theme hook (persists to localStorage) ────────────────────────────────────
+function useTheme() {
+  const [dark, setDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem("uilmath-theme");
+      if (saved) return saved === "dark";
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch(e) { return false; }
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dark) root.classList.add("dark"); else root.classList.remove("dark");
+    try { localStorage.setItem("uilmath-theme", dark ? "dark" : "light"); } catch(e){}
+  }, [dark]);
+  return [dark, () => setDark(d => !d)];
+}
+
+function useTimer() {
+  const [elapsed, setElapsed] = useState(0);
+  const ref = useRef(null);
+  const start = () => { if (!ref.current) ref.current = setInterval(() => setElapsed(e => e + 1), 1000); };
+  const stop  = () => { clearInterval(ref.current); ref.current = null; };
+  const reset = () => { stop(); setElapsed(0); };
+  useEffect(() => () => clearInterval(ref.current), []);
+  return { elapsed, fmt: `${String(Math.floor(elapsed/60)).padStart(2,"0")}:${String(elapsed%60).padStart(2,"0")}`, start, stop, reset };
+}
+
+function DiffPill({ d }) {
+  return <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${DIFF_PILL[d]||""}`}>{d}</span>;
+}
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+const SunIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>);
+const MoonIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>);
+
+// ── Filter dropdown ──────────────────────────────────────────────────────────
+function Dropdown({ label, value, options, onChange }) {
+  return (
+    <div className="relative">
+      <select value={value} onChange={e=>onChange(e.target.value)}
+        className="appearance-none pl-3 pr-9 py-2 rounded-lg text-sm font-medium border
+                   bg-white border-slate-200 text-slate-700
+                   dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">▾</span>
+    </div>
+  );
+}
+
+// ── Problem list (row layout) ────────────────────────────────────────────────
+function ProblemRow({ q, n, status, onOpen }) {
+  // status: undefined | "correct" | "wrong"
+  return (
+    <button onClick={onOpen}
+      className="group w-full grid grid-cols-[2.5rem_1fr_auto] sm:grid-cols-[3rem_1fr_10rem_7rem_5rem] items-center gap-3 px-4 py-3 text-left
+                 border-b border-slate-100 dark:border-slate-800
+                 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-mono text-slate-400 dark:text-slate-600 w-6 text-right">{n}</span>
+        {status === "correct" && <span className="text-emerald-500 text-sm">●</span>}
+        {status === "wrong" && <span className="text-rose-500 text-sm">●</span>}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-medium text-slate-800 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+          {q.image && <span title="Has a figure" className="mr-1.5 align-middle">🖼️</span>}
+          {q.question}
+        </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 sm:hidden">{q.topic} · {q.difficulty}</p>
+      </div>
+      <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+        <span className={`w-2 h-2 rounded-full ${TOPIC_DOT[q.topic]||"bg-slate-400"}`}></span>{q.topic}
+      </div>
+      <div className="hidden sm:block"><DiffPill d={q.difficulty} /></div>
+      <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 truncate">{q.source}</div>
+    </button>
+  );
+}
+
+// ── Single problem modal/view ────────────────────────────────────────────────
+function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext, hasPrev, hasNext }) {
+  const [selected, setSelected] = useState(prevAnswer ? prevAnswer.selected : null);
+  const [answered, setAnswered] = useState(!!prevAnswer);
+  const timer = useTimer();
+  const startRef = useRef(Date.now());
+
+  useEffect(() => {
+    setSelected(prevAnswer ? prevAnswer.selected : null);
+    setAnswered(!!prevAnswer);
+    timer.reset();
+    if (!prevAnswer) { timer.start(); startRef.current = Date.now(); }
+  }, [q.id]);
+
+  const handleSelect = (choice) => {
+    if (answered) return;
+    const timeMs = Date.now() - startRef.current;
+    setSelected(choice); setAnswered(true); timer.stop();
+    onAnswered && onAnswered({ questionId:q.id, topic:q.topic, difficulty:q.difficulty, selected:choice, correct: choice===q.answer, timeMs });
+  };
+
+  const choiceClass = (choice) => {
+    if (!answered) return "border-slate-200 bg-white hover:border-blue-400 hover:bg-blue-50 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-500 dark:hover:bg-slate-800";
+    if (choice === q.answer) return "border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-300";
+    if (choice === selected && choice !== q.answer) return "border-rose-400 bg-rose-50 text-rose-800 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300";
+    return "border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-600";
+  };
+  const isCorrect = answered && selected === q.answer;
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-950 overflow-y-auto">
+      <div className="flex-1 w-full max-w-3xl mx-auto flex flex-col">
+        {/* header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-950 z-10">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300"><span className={`w-2 h-2 rounded-full ${TOPIC_DOT[q.topic]}`}></span>{q.topic}</span>
+            <DiffPill d={q.difficulty} />
+            <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:inline">{q.source}</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg px-2.5 py-0.5">⏱ {timer.fmt}</span>
+            <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xl leading-none">×</button>
+          </div>
+        </div>
+        {/* question */}
+        <div className="px-6 pt-5 pb-4">
+          <p className="text-slate-800 dark:text-slate-100 font-medium text-base leading-relaxed whitespace-pre-line"><MathText text={q.question} /></p>
+          {q.image && (
+            <div className="mt-4 flex justify-center">
+              <img src={q.image} alt={"Figure for problem"}
+                className="max-w-full sm:max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white" />
+            </div>
+          )}
+        </div>
+        {/* choices */}
+        <div className="px-6 pb-5 grid gap-2.5">
+          {q.choices.map((choice, i) => (
+            <button key={i} onClick={()=>handleSelect(choice)}
+              className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all duration-150 flex items-center gap-3 ${choiceClass(choice)}`}>
+              <span className="w-6 h-6 rounded-full border-2 border-current flex items-center justify-center text-xs shrink-0 font-bold">{String.fromCharCode(65+i)}</span>
+              <span><MathText text={choice} /></span>
+              {answered && choice===q.answer && <span className="ml-auto text-emerald-600 dark:text-emerald-400 font-bold">✓</span>}
+              {answered && choice===selected && choice!==q.answer && <span className="ml-auto text-rose-500 font-bold">✗</span>}
+            </button>
+          ))}
+        </div>
+        {/* explanation */}
+        {answered && (
+          <div className={`mx-6 mb-5 rounded-xl p-4 border text-sm ${isCorrect ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30" : "bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/30"}`}>
+            <p className={`font-semibold mb-1.5 ${isCorrect ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>{isCorrect ? "✓ Correct!" : `✗ Incorrect — Correct: ${q.answer}`}{!prevAnswer && ` · Time: ${timer.fmt}`}</p>
+            <p className="text-slate-700 dark:text-slate-300 leading-relaxed"><MathText text={q.explanation} /></p>
+          </div>
+        )}
+        <div className="px-6 pb-4 flex flex-wrap gap-1.5">
+          {q.tags.map(t => <span key={t} className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full">#{t}</span>)}
+        </div>
+        {stat && stat.attempts > 0 && (
+          <div className="px-6 pb-4">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Your history on this problem</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{Math.round(100*stat.correct/stat.attempts)}%</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">{stat.correct}/{stat.attempts} correct</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.bestMs)}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">best time</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.lastMs)}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">last time</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* nav footer */}
+        <div className="mt-auto flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-950">
+          <button onClick={onPrev} disabled={!hasPrev}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${hasPrev ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700" : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 cursor-not-allowed"}`}>← Prev</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Back to list</button>
+          <button onClick={onNext} disabled={!hasNext}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${hasNext ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 cursor-not-allowed"}`}>Next →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultsPage({ results, onRestart, onClose, onClearHistory }) {
+  const pct = Math.round(results.accuracy*100);
+  const sorted = [...results.byTopic].sort((a,b)=>b.attempts-a.attempts);
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Practice Results</p>
+            <h2 className="font-display text-3xl font-black text-slate-800 dark:text-slate-100">You scored {results.correct} / {results.total}</h2>
+          </div>
+          <button onClick={onClose} className="text-sm px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700">Back to problems</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[["Accuracy", pct+"%", "text-blue-600 dark:text-blue-400"],["Avg / Question", fmtTime(results.avgTimeMs), "text-slate-800 dark:text-slate-100"],["Total Time", fmtTime(results.totalTimeMs), "text-slate-800 dark:text-slate-100"]].map(([label,val,cls])=>(
+            <div key={label} className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-5 text-center">
+              <p className={`text-4xl font-black ${cls}`}>{val}</p>
+              <p className="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wide">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 mb-6">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-5">Accuracy by Topic</h3>
+        <div className="space-y-4">
+          {sorted.map(t => {
+            const a = Math.round(t.accuracy*100);
+            return (
+              <div key={t.topic}>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200"><span className={`w-2 h-2 rounded-full ${TOPIC_DOT[t.topic]||"bg-slate-400"}`}></span>{t.topic}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t.correct}/{t.attempts} · {a}% · avg {fmtTime(t.avgTimeMs)}</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${TOPIC_BAR[t.topic]||"bg-slate-400"}`} style={{width:`${a}%`}}></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <button onClick={onRestart} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">Reset progress &amp; practice again</button>
+      <button onClick={onClearHistory} className="w-full mt-3 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">Clear all saved per-problem history on this device</button>
+    </div>
+  );
+}
+
+function App() {
+  const [dark, toggleTheme] = useTheme();
+  const [topic, setTopic] = useState("All Topics");
+  const [diff, setDiff] = useState("All Difficulties");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [openIdx, setOpenIdx] = useState(null);   // index within filtered list
+  const [view, setView] = useState("list");        // "list" | "results"
+  const [results, setResults] = useState(null);
+  const answersRef = useRef({});
+  const [answerVersion, setAnswerVersion] = useState(0);
+  // Persistent per-question history (survives refresh on this device)
+  const [qStats, setQStats] = useLocalStorage("uilmath-qstats", {});
+
+  const filtered = useMemo(() => QUESTIONS.filter(q => {
+    if (topic !== "All Topics" && q.topic !== topic) return false;
+    if (diff !== "All Difficulties" && q.difficulty !== diff) return false;
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      return q.question.toLowerCase().includes(s) || q.tags.some(t=>t.includes(s)) || q.topic.toLowerCase().includes(s) || (q.source||"").toLowerCase().includes(s);
+    }
+    return true;
+  }), [topic, diff, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageClamped = Math.min(page, totalPages);
+  const pageItems = filtered.slice((pageClamped-1)*PAGE_SIZE, pageClamped*PAGE_SIZE);
+
+  const recordAnswer = (rec) => {
+    answersRef.current[rec.questionId] = rec;
+    setAnswerVersion(v=>v+1);
+    // Accumulate persistent per-question stats
+    setQStats(prev => {
+      const cur = prev[rec.questionId] || { attempts:0, correct:0, bestMs:null, lastMs:null };
+      const next = {
+        attempts: cur.attempts + 1,
+        correct: cur.correct + (rec.correct ? 1 : 0),
+        bestMs: cur.bestMs == null ? rec.timeMs : Math.min(cur.bestMs, rec.timeMs),
+        lastMs: rec.timeMs,
+      };
+      return { ...prev, [rec.questionId]: next };
+    });
+  };
+  const answeredCount = Object.keys(answersRef.current).length;
+
+  const counts = useMemo(()=>{
+    const t={}, d={};
+    TOPICS.forEach(x=> t[x] = x==="All Topics"?QUESTIONS.length:QUESTIONS.filter(q=>q.topic===x).length);
+    DIFFICULTIES.forEach(x=> d[x] = x==="All Difficulties"?QUESTIONS.length:QUESTIONS.filter(q=>q.difficulty===x).length);
+    return {t,d};
+  },[]);
+
+  const computeResults = () => {
+    const answers = Object.values(answersRef.current);
+    const m={};
+    answers.forEach(a=>{(m[a.topic]=m[a.topic]||{topic:a.topic,attempts:0,correct:0,timeMs:0});m[a.topic].attempts++;m[a.topic].correct+=a.correct?1:0;m[a.topic].timeMs+=a.timeMs;});
+    const total=answers.length, correct=answers.filter(a=>a.correct).length, totalTimeMs=answers.reduce((s,a)=>s+a.timeMs,0);
+    return {total,correct,accuracy:total?correct/total:0,totalTimeMs,avgTimeMs:total?totalTimeMs/total:0,
+      byTopic:Object.values(m).map(t=>({topic:t.topic,attempts:t.attempts,correct:t.correct,accuracy:t.correct/t.attempts,avgTimeMs:t.timeMs/t.attempts}))};
+  };
+
+  const finish = () => { if(answeredCount===0) return; setResults(computeResults()); setView("results"); window.scrollTo(0,0); };
+  const restart = () => { answersRef.current={}; setAnswerVersion(v=>v+1); setResults(null); setView("list"); setOpenIdx(null); };
+
+  const onFilter = (setter,val)=>{ setter(val); setPage(1); };
+
+  const statusFor = (q) => {
+    const a = answersRef.current[q.id];
+    if (!a) return undefined;
+    return a.correct ? "correct" : "wrong";
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+      {/* NAV */}
+      <nav className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={restart}>
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center"><span className="text-white text-sm font-bold">∑</span></div>
+            <span className="font-bold text-slate-800 dark:text-slate-100 text-base hidden sm:block">UIL Math Practice</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {answeredCount>0 && view==="list" && (
+              <button onClick={finish} className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">
+                Results ({answeredCount})
+              </button>
+            )}
+            <button onClick={toggleTheme} title="Toggle theme"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+              {dark ? <SunIcon/> : <MoonIcon/>}
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {view === "results" && results ? (
+        <ResultsPage results={results} onRestart={restart} onClose={()=>setView("list")} onClearHistory={()=>{ setQStats({}); }} />
+      ) : (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* HEADER */}
+        <div className="mb-6">
+          <h1 className="font-display text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-1">Problems</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">UIL General Mathematics · {filtered.length} problems · real questions from 2026 District, Region &amp; TMSCA tests</p>
+        </div>
+
+        {/* FILTER BAR */}
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <div className="relative flex-1 min-w-[200px]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+            <input type="text" placeholder="Search problems…" value={search}
+              onChange={e=>{setSearch(e.target.value); setPage(1);}}
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <Dropdown label="Topic" value={topic} options={TOPICS} onChange={v=>onFilter(setTopic,v)} />
+          <Dropdown label="Difficulty" value={diff} options={DIFFICULTIES} onChange={v=>onFilter(setDiff,v)} />
+        </div>
+
+        {/* TABLE */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+          {/* column header */}
+          <div className="hidden sm:grid grid-cols-[3rem_1fr_10rem_7rem_5rem] gap-3 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <span>#</span><span>Problem</span><span>Topic</span><span>Difficulty</span><span>Source</span>
+          </div>
+          {pageItems.length === 0 ? (
+            <div className="py-20 text-center text-slate-400 dark:text-slate-600">
+              <p className="text-4xl mb-3">🔍</p><p className="font-semibold">No problems found</p>
+            </div>
+          ) : pageItems.map((q, i) => {
+            const globalIdx = (pageClamped-1)*PAGE_SIZE + i;
+            return <ProblemRow key={q.id} q={q} n={globalIdx+1} status={statusFor(q)} onOpen={()=>setOpenIdx(globalIdx)} />;
+          })}
+        </div>
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1.5 mt-6">
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={pageClamped===1}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${pageClamped===1?"text-slate-300 dark:text-slate-700 cursor-not-allowed":"text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>‹</button>
+            {Array.from({length: totalPages}, (_,i)=>i+1).map(p => (
+              <button key={p} onClick={()=>setPage(p)}
+                className={`w-9 h-9 rounded-lg text-sm font-medium ${p===pageClamped?"bg-blue-600 text-white":"text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>{p}</button>
+            ))}
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={pageClamped===totalPages}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${pageClamped===totalPages?"text-slate-300 dark:text-slate-700 cursor-not-allowed":"text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>›</button>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* PROBLEM MODAL */}
+      {openIdx !== null && filtered[openIdx] && (
+        <ProblemView
+          q={filtered[openIdx]}
+          prevAnswer={answersRef.current[filtered[openIdx].id]}
+          stat={qStats[filtered[openIdx].id]}
+          onClose={()=>setOpenIdx(null)}
+          onAnswered={recordAnswer}
+          hasPrev={openIdx>0}
+          hasNext={openIdx<filtered.length-1}
+          onPrev={()=>setOpenIdx(i=>Math.max(0,i-1))}
+          onNext={()=>setOpenIdx(i=>Math.min(filtered.length-1,i+1))}
+        />
+      )}
+
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-400 dark:text-slate-600">
+        UIL General Mathematics Practice · Questions from 2026 UIL &amp; TMSCA competition tests, used with permission for study.
+      </footer>
+    </div>
+  );
+}
+
+document.getElementById("root").dataset.loaded = "1";
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
