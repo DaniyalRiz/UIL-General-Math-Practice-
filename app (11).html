@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<!-- UIL Math Practice v2.1 — centered nav, no logo -->
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>UIL Math Practice — Problems</title>
+<meta name="description" content="Practice UIL General Mathematics with real questions from District, Region, and TMSCA tests." />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { darkMode: 'class' };
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', system-ui, sans-serif; }
+  .font-display { font-family: 'Fraunces', Georgia, serif; }
+  .whitespace-pre-line { white-space: pre-line; }
+</style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950">
+<script>
+  window.addEventListener("error", function(e){
+    var r = document.getElementById("root");
+    if(r && r.dataset.loaded !== "1"){ r.innerHTML = "<div style='padding:40px;font-family:sans-serif;color:#b91c1c'><b>Something went wrong loading the app.</b><br><br>" + (e.message||"") + "</div>"; }
+  });
+</script>
+<div id="root"><div style="padding:40px;text-align:center;font-family:sans-serif;color:#64748b">Loading practice questions…</div></div>
+
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo } = React;
+
+const TOPICS = ["All Topics","Algebra 1 & 2","Geometry","Precalculus","AP Calculus","AP Statistics"];
+const DIFFICULTIES = ["All Difficulties","Easy","Medium","Hard"];
+const PAGE_SIZE = 15;
+
+// difficulty pill colors (light + dark)
+const DIFF_PILL = {
+  Easy:   "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
+  Medium: "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400",
+  Hard:   "bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400",
+};
+const TOPIC_DOT = {
+  "Algebra 1 & 2":"bg-violet-500","Geometry":"bg-sky-500","Precalculus":"bg-emerald-500",
+  "AP Calculus":"bg-amber-500","AP Statistics":"bg-rose-500",
+};
+const TOPIC_BAR = TOPIC_DOT;
+
+const fmtTime = ms => {
+  const s = Math.round(ms/1000);
+  return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+};
+
+// Strip \(...\) and \[...\] delimiters for plain-text row previews
+const plainText = (s) => String(s||"")
+  .replace(/\\\[([\s\S]*?)\\\]/g, (_,m)=>m.trim())
+  .replace(/\\\(([\s\S]*?)\\\)/g, (_,m)=>m.trim())
+  .replace(/\s+/g," ").trim();
+
+// ── Math rendering ────────────────────────────────────────────────────────────
+// Renders text containing LaTeX. Use $...$ for inline math and $$...$$ for display.
+// Falls back to plain text if KaTeX hasn't loaded.
+function MathText({ text, className }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (!window.katex) { el.textContent = text; return; }
+    // Split on \[...\] (display) and \(...\) (inline). Money uses a plain $, which
+    // we leave untouched so it never collides with math.
+    const parts = String(text).split(/(\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\))/g);
+    el.innerHTML = "";
+    parts.forEach(part => {
+      if (!part) return;
+      const display = part.startsWith("\\[") && part.endsWith("\\]");
+      const inline = part.startsWith("\\(") && part.endsWith("\\)");
+      if (display || inline) {
+        const tex = part.slice(2, part.length - 2);
+        const span = document.createElement("span");
+        try {
+          window.katex.render(tex, span, { displayMode: display, throwOnError: false });
+        } catch(e) { span.textContent = tex; }
+        el.appendChild(span);
+      } else {
+        el.appendChild(document.createTextNode(part));
+      }
+    });
+  }, [text]);
+  return <span ref={ref} className={className}>{text}</span>;
+}
+
+// ── localStorage hook (JSON-backed, survives refresh on this device) ──────────
+function useLocalStorage(key, initial) {
+  const [value, setValue] = useState(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : initial;
+    } catch(e) { return initial; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch(e){}
+  }, [key, value]);
+  return [value, setValue];
+}
+
+// ── Theme hook (persists to localStorage) ────────────────────────────────────
+function useTheme() {
+  const [dark, setDark] = useState(() => {
+    try {
+      const saved = localStorage.getItem("uilmath-theme");
+      if (saved) return saved === "dark";
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+    } catch(e) { return false; }
+  });
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dark) root.classList.add("dark"); else root.classList.remove("dark");
+    try { localStorage.setItem("uilmath-theme", dark ? "dark" : "light"); } catch(e){}
+  }, [dark]);
+  return [dark, () => setDark(d => !d)];
+}
+
+function useTimer() {
+  const [elapsed, setElapsed] = useState(0);
+  const ref = useRef(null);
+  const start = () => { if (!ref.current) ref.current = setInterval(() => setElapsed(e => e + 1), 1000); };
+  const stop  = () => { clearInterval(ref.current); ref.current = null; };
+  const reset = () => { stop(); setElapsed(0); };
+  useEffect(() => () => clearInterval(ref.current), []);
+  return { elapsed, fmt: `${String(Math.floor(elapsed/60)).padStart(2,"0")}:${String(elapsed%60).padStart(2,"0")}`, start, stop, reset };
+}
+
+function DiffPill({ d }) {
+  return <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${DIFF_PILL[d]||""}`}>{d}</span>;
+}
+
+// ── Icons ────────────────────────────────────────────────────────────────────
+const SunIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>);
+const MoonIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>);
+
+// ── Filter dropdown ──────────────────────────────────────────────────────────
+function Dropdown({ label, value, options, onChange }) {
+  return (
+    <div className="relative">
+      <select value={value} onChange={e=>onChange(e.target.value)}
+        className="appearance-none pl-3 pr-9 py-2 rounded-lg text-sm font-medium border
+                   bg-white border-slate-200 text-slate-700
+                   dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200
+                   focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">▾</span>
+    </div>
+  );
+}
+
+// ── Problem list (row layout) ────────────────────────────────────────────────
+function ProblemRow({ q, n, status, onOpen }) {
+  return (
+    <button onClick={onOpen}
+      className="group w-full grid grid-cols-[2.5rem_1fr_auto] sm:grid-cols-[3rem_1fr_9rem_7rem_11rem_7rem] items-center gap-3 px-4 py-3 text-left
+                 border-b border-slate-100 dark:border-slate-800
+                 hover:bg-slate-50 dark:hover:bg-slate-900/60 transition-colors">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-mono text-slate-400 dark:text-slate-600 w-6 text-right">{n}</span>
+        {status === "correct" && <span className="text-emerald-500 text-sm">●</span>}
+        {status === "wrong" && <span className="text-rose-500 text-sm">●</span>}
+      </div>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
+          {q.title || plainText(q.question)}
+        </p>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 truncate hidden sm:block">{plainText(q.question)}</p>
+        <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5 sm:hidden">{q.topic} · {q.difficulty}</p>
+      </div>
+      <div className="hidden sm:flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+        <span className={`w-2 h-2 rounded-full ${TOPIC_DOT[q.topic]||"bg-slate-400"}`}></span>{q.topic}
+      </div>
+      <div className="hidden sm:block"><DiffPill d={q.difficulty} /></div>
+      <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">{q.source}</div>
+      <div className="hidden sm:block text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
+        {q.date_added ? new Date(q.date_added).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) : "—"}
+      </div>
+    </button>
+  );
+}
+
+// ── Single problem modal/view ────────────────────────────────────────────────
+// ── SimilarProblem: self-contained mini-quiz for AI-generated problems ────────
+// ── Similar question recommender ─────────────────────────────────────────────
+function getSimilarQuestions(current, allQuestions, answeredIds = []) {
+  const others = allQuestions.filter(q => q.id !== current.id);
+  const scored = others.map(q => {
+    let score = 0;
+    // Tag overlap (highest weight — same pattern)
+    const sharedTags = (current.tags || []).filter(t => (q.tags || []).includes(t));
+    score += sharedTags.length * 10;
+    // Same topic
+    if (q.topic === current.topic) score += 4;
+    // Same difficulty
+    if (q.difficulty === current.difficulty) score += 2;
+    // Penalise already-answered questions (prefer unseen)
+    if (answeredIds.includes(q.id)) score -= 5;
+    return { q, score, sharedTags };
+  });
+  // Sort by score desc, then shuffle ties so it's not always the same 3
+  scored.sort((a, b) => b.score - a.score || Math.random() - 0.5);
+  return scored.slice(0, 3).map(s => ({ ...s.q, sharedTags: s.sharedTags }));
+}
+
+function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext, hasPrev, hasNext, isBookmarked, onToggleBookmark, authUser, allQuestions, answeredIds, onOpenQuestion }) {
+  const [pending, setPending]   = useState(prevAnswer ? prevAnswer.selected : null);
+  const [selected, setSelected] = useState(prevAnswer ? prevAnswer.selected : null);
+  const [answered, setAnswered] = useState(!!prevAnswer);
+  const [crossed, setCrossed]   = useState({});
+  // Notes state
+  const [notes, setNotes]       = useState([]);
+  const [noteText, setNoteText] = useState("");
+  const [notesSaving, setNotesSaving] = useState(false);
+  const timer = useTimer();
+  const startRef = useRef(Date.now());
+
+  // Load notes for this question when it opens
+  useEffect(() => {
+    setPending(prevAnswer ? prevAnswer.selected : null);
+    setSelected(prevAnswer ? prevAnswer.selected : null);
+    setAnswered(!!prevAnswer);
+    setCrossed({});
+    setNoteText("");
+    timer.reset();
+    if (!prevAnswer) { timer.start(); startRef.current = Date.now(); }
+    // Fetch notes from Supabase
+    if (authUser) {
+      _supabase.from('notes')
+        .select('*')
+        .eq('user_id', authUser.id)
+        .eq('question_id', q.id)
+        .order('created_at', { ascending: true })
+        .then(({ data }) => setNotes(data || []));
+    } else {
+      setNotes([]);
+    }
+  }, [q.id]);
+
+  const saveNote = async () => {
+    if (!noteText.trim() || !authUser) return;
+    setNotesSaving(true);
+    const { data, error } = await _supabase.from('notes').insert({
+      user_id: authUser.id,
+      question_id: q.id,
+      note_text: noteText.trim(),
+    }).select();
+    if (!error && data) {
+      setNotes(prev => [...prev, data[0]]);
+      setNoteText("");
+    }
+    setNotesSaving(false);
+  };
+
+  const deleteNote = async (noteId) => {
+    await _supabase.from('notes').delete().eq('id', noteId);
+    setNotes(prev => prev.filter(n => n.id !== noteId));
+  };
+
+  // Left-click: select/deselect a choice (pending, not yet submitted)
+  const handlePick = (choice) => {
+    if (answered) return;
+    setPending(p => p === choice ? null : choice);
+  };
+
+  // Right-click: cross out / un-cross a choice
+  const handleCross = (e, choice) => {
+    e.preventDefault();
+    if (answered) return;
+    setCrossed(prev => ({ ...prev, [choice]: !prev[choice] }));
+  };
+
+  // Submit button handler
+  const handleSubmit = () => {
+    if (answered || !pending) return;
+    const timeMs = Date.now() - startRef.current;
+    setSelected(pending); setAnswered(true); timer.stop();
+    onAnswered && onAnswered({ questionId:q.id, topic:q.topic, difficulty:q.difficulty, selected:pending, correct: pending===q.answer, timeMs });
+  };
+
+  const choiceClass = (choice) => {
+    const isCrossed = crossed[choice] && !answered;
+    if (!answered) {
+      if (pending === choice) return "border-blue-500 bg-blue-50 dark:bg-blue-500/10 dark:border-blue-400 cursor-pointer";
+      if (isCrossed) return "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-900/50 opacity-40 cursor-pointer";
+      return "border-slate-200 bg-white hover:border-blue-300 hover:bg-blue-50/50 cursor-pointer dark:border-slate-700 dark:bg-slate-900 dark:hover:border-blue-600 dark:hover:bg-slate-800";
+    }
+    if (choice === q.answer) return "border-emerald-400 bg-emerald-50 text-emerald-800 dark:border-emerald-500/50 dark:bg-emerald-500/10 dark:text-emerald-300";
+    if (choice === selected && choice !== q.answer) return "border-rose-400 bg-rose-50 text-rose-800 dark:border-rose-500/50 dark:bg-rose-500/10 dark:text-rose-300";
+    return "border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-600";
+  };
+  const isCorrect = answered && selected === q.answer;
+
+  return (
+    <div className="fixed inset-0 z-50 flex flex-col bg-white dark:bg-slate-950 overflow-y-auto">
+      <div className="flex-1 w-full max-w-3xl mx-auto flex flex-col">
+
+        {/* ── header ── */}
+        <div className="border-b border-slate-100 dark:border-slate-800 sticky top-0 bg-white dark:bg-slate-950 z-10">
+          <div className="flex items-center justify-between px-5 pt-4 pb-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="flex items-center gap-1.5 text-sm text-slate-600 dark:text-slate-300">
+                <span className={`w-2 h-2 rounded-full ${TOPIC_DOT[q.topic]}`}></span>{q.topic}
+              </span>
+              <DiffPill d={q.difficulty} />
+              <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:inline">{q.source}</span>
+              {q.date_added && <span className="text-xs text-slate-400 dark:text-slate-500 hidden sm:inline">· Added {new Date(q.date_added).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>}
+            </div>
+            <div className="flex items-center gap-2">
+              {/* bookmark button */}
+              <button onClick={onToggleBookmark} title={isBookmarked ? "Remove bookmark" : "Bookmark for review"}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border transition-all
+                  ${isBookmarked
+                    ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-500/15 dark:border-amber-500/40 dark:text-amber-400"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:border-amber-300 hover:text-amber-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-400 dark:hover:border-amber-500 dark:hover:text-amber-400"}`}>
+                <span>🔖</span>
+                <span className="hidden sm:inline">{isBookmarked ? "Saved" : "Review later"}</span>
+              </button>
+              <span className="font-mono text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-lg px-2.5 py-1">⏱ {timer.fmt}</span>
+              <button onClick={onClose} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 text-xl leading-none px-1">×</button>
+            </div>
+          </div>
+          {q.title && (
+            <div className="px-5 pb-3">
+              <h2 className="font-display text-lg font-black text-slate-900 dark:text-white tracking-tight">{q.title}</h2>
+            </div>
+          )}
+        </div>
+
+        {/* ── question ── */}
+        <div className="px-6 pt-5 pb-4">
+          <p className="text-slate-800 dark:text-slate-100 font-medium text-base leading-relaxed whitespace-pre-line">
+            <MathText text={q.question} />
+          </p>
+          {q.image && (
+            <div className="mt-4 flex justify-center">
+              <img src={q.image} alt="Figure for problem"
+                className="max-w-full sm:max-w-md rounded-xl border border-slate-200 dark:border-slate-700 bg-white" />
+            </div>
+          )}
+        </div>
+
+        {/* ── hint ── */}
+        {!answered && (
+          <p className="px-6 pb-2 text-xs text-slate-400 dark:text-slate-500">
+            Click to select · Right-click to cross out · Press <kbd className="px-1 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[10px]">Submit</kbd> to check
+          </p>
+        )}
+
+        {/* ── choices ── */}
+        <div className="px-6 pb-4 grid gap-2.5">
+          {q.choices.map((choice, i) => (
+            <button key={i}
+              onClick={() => handlePick(choice)}
+              onContextMenu={(e) => handleCross(e, choice)}
+              className={`w-full text-left px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all duration-150 flex items-center gap-3 select-none ${choiceClass(choice)}`}>
+              {/* letter circle */}
+              <span className={`w-6 h-6 rounded-full border-2 border-current flex items-center justify-center text-xs shrink-0 font-bold relative
+                ${crossed[choice] && !answered ? "opacity-40" : ""}`}>
+                {String.fromCharCode(65+i)}
+                {/* cross-out line */}
+                {crossed[choice] && !answered && (
+                  <span className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="w-full h-0.5 bg-current rotate-45 absolute"></span>
+                  </span>
+                )}
+              </span>
+              {/* choice text with optional strikethrough */}
+              <span className={crossed[choice] && !answered ? "line-through opacity-50" : ""}>
+                <MathText text={choice} />
+              </span>
+              {/* right-side icons */}
+              {!answered && crossed[choice] && (
+                <span className="ml-auto text-slate-400 text-xs">✕</span>
+              )}
+              {answered && choice===q.answer && <span className="ml-auto text-emerald-600 dark:text-emerald-400 font-bold text-base">✓</span>}
+              {answered && choice===selected && choice!==q.answer && <span className="ml-auto text-rose-500 font-bold text-base">✗</span>}
+            </button>
+          ))}
+        </div>
+
+        {/* ── submit button (pre-answer) ── */}
+        {!answered && (
+          <div className="px-6 pb-5">
+            <button onClick={handleSubmit} disabled={!pending}
+              className={`w-full py-3 rounded-xl text-sm font-bold transition-all
+                ${pending
+                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  : "bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600 cursor-not-allowed"}`}>
+              {pending ? "Submit Answer" : "Select an answer first"}
+            </button>
+          </div>
+        )}
+
+        {/* ── explanation (post-answer) ── */}
+        {answered && (
+          <div className={`mx-6 mb-5 rounded-xl p-4 border text-sm
+            ${isCorrect ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30"
+                        : "bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/30"}`}>
+            <p className={`font-semibold mb-1.5 ${isCorrect ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>
+              {isCorrect ? "✓ Correct!" : `✗ Incorrect — Correct: ${q.answer}`}{!prevAnswer && ` · Time: ${timer.fmt}`}
+            </p>
+            <p className="text-slate-700 dark:text-slate-300 leading-relaxed"><MathText text={q.explanation} /></p>
+          </div>
+        )}
+
+        {/* ── tags ── */}
+        <div className="px-6 pb-4 flex flex-wrap gap-1.5">
+          {q.tags.map(t => <span key={t} className="text-xs px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-full">#{t}</span>)}
+        </div>
+
+        {/* ── notes ── */}
+        <div className="px-6 pb-5">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 overflow-hidden">
+            <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+              <span className="text-base">📝</span>
+              <p className="text-sm font-bold text-slate-700 dark:text-slate-200">My Notes</p>
+              {!authUser && <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">Sign in to save notes</span>}
+            </div>
+            {/* existing notes */}
+            {notes.length > 0 && (
+              <div className="divide-y divide-slate-200 dark:divide-slate-800">
+                {notes.map(n => (
+                  <div key={n.id} className="px-4 py-3 flex items-start gap-3 group">
+                    <div className="flex-1">
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{n.note_text}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">{new Date(n.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+                    </div>
+                    <button onClick={()=>deleteNote(n.id)}
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-all text-lg leading-none shrink-0 mt-0.5">×</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* add note input */}
+            {authUser ? (
+              <div className="px-4 py-3">
+                <textarea
+                  value={noteText}
+                  onChange={e=>setNoteText(e.target.value)}
+                  onKeyDown={e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) saveNote(); }}
+                  placeholder="Add a note for this problem… (Cmd+Enter to save)"
+                  rows={2}
+                  className="w-full text-sm px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+                <button onClick={saveNote} disabled={!noteText.trim() || notesSaving}
+                  className={`mt-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors
+                    ${noteText.trim() ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"}`}>
+                  {notesSaving ? "Saving…" : "Save Note"}
+                </button>
+              </div>
+            ) : (
+              <div className="px-4 py-3">
+                <p className="text-xs text-slate-400 dark:text-slate-500"><a href="./index.html" className="text-blue-500 hover:underline">Sign in</a> to add and save notes to this problem.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── per-question history ── */}
+        {stat && stat.attempts > 0 && (
+          <div className="px-6 pb-4">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Your history on this problem</p>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{Math.round(100*stat.correct/stat.attempts)}%</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">{stat.correct}/{stat.attempts} correct</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.bestMs)}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">best time</p>
+                </div>
+                <div>
+                  <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.lastMs)}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-slate-500">last time</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── similar problems ── always visible ── */}
+        {(() => {
+          const pool = allQuestions.length > 0 ? allQuestions : [];
+          if (pool.length <= 1) return null;
+          const others = pool.filter(x => x.id !== q.id);
+          const scored = others.map(x => {
+            let score = 0;
+            const sharedTags = (q.tags || []).filter(t => (x.tags || []).includes(t));
+            score += sharedTags.length * 10;
+            if (x.topic === q.topic) score += 4;
+            if (x.difficulty === q.difficulty) score += 2;
+            return { x, score, sharedTags };
+          });
+          scored.sort((a, b) => b.score - a.score || Math.random() - 0.5);
+          const similar = scored.slice(0, 3).map(s => ({ ...s.x, sharedTags: s.sharedTags }));
+          return (
+            <div className="px-6 pb-5">
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Practice Similar Problems</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Build speed by drilling the same question pattern.</p>
+                </div>
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
+                  {similar.map(sq => (
+                    <div key={sq.id} className="px-4 py-3 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{sq.title || plainText(sq.question)}</p>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                          <span className={`w-1.5 h-1.5 rounded-full ${TOPIC_DOT[sq.topic]||"bg-slate-400"}`}></span>
+                          <span className="text-xs text-slate-500 dark:text-slate-400">{sq.topic}</span>
+                          <DiffPill d={sq.difficulty} />
+                          {sq.sharedTags && sq.sharedTags.slice(0,2).map(t =>
+                            <span key={t} className="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full">#{t}</span>
+                          )}
+                        </div>
+                      </div>
+                      <button onClick={()=> onOpenQuestion(sq.id)}
+                        className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                        Open
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── nav footer ── */}
+        <div className="mt-auto flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 dark:border-slate-800 sticky bottom-0 bg-white dark:bg-slate-950">
+          <button onClick={onPrev} disabled={!hasPrev}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${hasPrev
+              ? "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700"
+              : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 cursor-not-allowed"}`}>← Prev</button>
+          <button onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200">Back to list</button>
+          <button onClick={onNext} disabled={!hasNext}
+            className={`px-4 py-2 rounded-lg text-sm font-medium ${hasNext
+              ? "bg-blue-600 hover:bg-blue-700 text-white"
+              : "bg-slate-50 dark:bg-slate-900 text-slate-300 dark:text-slate-700 cursor-not-allowed"}`}>Next →</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultsPage({ results, onRestart, onClose, onClearHistory }) {
+  const pct = Math.round(results.accuracy*100);
+  const sorted = [...results.byTopic].sort((a,b)=>b.attempts-a.attempts);
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 mb-6">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Practice Results</p>
+            <h2 className="font-display text-3xl font-black text-slate-800 dark:text-slate-100">You scored {results.correct} / {results.total}</h2>
+          </div>
+          <button onClick={onClose} className="text-sm px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700">Back to problems</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[["Accuracy", pct+"%", "text-blue-600 dark:text-blue-400"],["Avg / Question", fmtTime(results.avgTimeMs), "text-slate-800 dark:text-slate-100"],["Total Time", fmtTime(results.totalTimeMs), "text-slate-800 dark:text-slate-100"]].map(([label,val,cls])=>(
+            <div key={label} className="rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-5 text-center">
+              <p className={`text-4xl font-black ${cls}`}>{val}</p>
+              <p className="text-xs text-slate-500 mt-1 font-medium uppercase tracking-wide">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-8 mb-6">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-5">Accuracy by Topic</h3>
+        <div className="space-y-4">
+          {sorted.map(t => {
+            const a = Math.round(t.accuracy*100);
+            return (
+              <div key={t.topic}>
+                <div className="flex items-center justify-between text-sm mb-1.5">
+                  <span className="flex items-center gap-2 font-medium text-slate-700 dark:text-slate-200"><span className={`w-2 h-2 rounded-full ${TOPIC_DOT[t.topic]||"bg-slate-400"}`}></span>{t.topic}</span>
+                  <span className="text-slate-500 dark:text-slate-400">{t.correct}/{t.attempts} · {a}% · avg {fmtTime(t.avgTimeMs)}</span>
+                </div>
+                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full ${TOPIC_BAR[t.topic]||"bg-slate-400"}`} style={{width:`${a}%`}}></div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <button onClick={onRestart} className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">Reset progress &amp; practice again</button>
+      <button onClick={onClearHistory} className="w-full mt-3 py-2.5 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition-colors">Clear all saved per-problem history on this device</button>
+    </div>
+  );
+}
+
+function App() {
+  const [dark, toggleTheme] = useTheme();
+  const [authUser, setAuthUser] = useState(null);
+
+  // Auth state listener — use getSession() which reliably restores persisted sessions
+  useEffect(() => {
+    _supabase.auth.getSession().then(({ data: { session } }) => {
+      setAuthUser(session?.user ?? null);
+    });
+    const { data: { subscription } } = _supabase.auth.onAuthStateChange((_e, session) => {
+      setAuthUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const signOut = async () => { await _supabase.auth.signOut(); };
+  const [topic, setTopic] = useState("All Topics");
+  const [diff, setDiff] = useState("All Difficulties");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [openIdx, setOpenIdx] = useState(null);
+  const [view, setView] = useState("list");
+  const [results, setResults] = useState(null);
+  const answersRef = useRef({});
+  const [answerVersion, setAnswerVersion] = useState(0);
+  const [qStats, setQStats] = useLocalStorage("uilmath-qstats", {});
+  const [bookmarks, setBookmarks] = useLocalStorage("uilmath-bookmarks", []);
+
+  // ── Question loading ─────────────────────────────────────────────────────
+  const [questions, setQuestions] = useState([]);
+  const [loadState, setLoadState] = useState("loading"); // "loading" | "ready" | "error"
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("./questions.json")
+      .then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(data => {
+        if (!cancelled) { setQuestions(data); setLoadState("ready"); }
+      })
+      .catch(err => {
+        if (!cancelled) { setLoadError(err.message); setLoadState("error"); }
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  const toggleBookmark = (id) => {
+    setBookmarks(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    );
+  };
+
+  const filtered = useMemo(() => questions.filter(q => {
+    if (topic !== "All Topics" && q.topic !== topic) return false;
+    if (diff !== "All Difficulties" && q.difficulty !== diff) return false;
+    if (search.trim()) {
+      const s = search.toLowerCase();
+      return q.question.toLowerCase().includes(s) || q.tags.some(t=>t.includes(s)) || q.topic.toLowerCase().includes(s) || (q.source||"").toLowerCase().includes(s);
+    }
+    return true;
+  }), [questions, topic, diff, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const pageClamped = Math.min(page, totalPages);
+  const pageItems = filtered.slice((pageClamped-1)*PAGE_SIZE, pageClamped*PAGE_SIZE);
+
+  const recordAnswer = (rec) => {
+    answersRef.current[rec.questionId] = rec;
+    setAnswerVersion(v=>v+1);
+    saveAnswerToSupabase(authUser, rec);
+    // Accumulate persistent per-question stats
+    setQStats(prev => {
+      const cur = prev[rec.questionId] || { attempts:0, correct:0, bestMs:null, lastMs:null };
+      const next = {
+        attempts: cur.attempts + 1,
+        correct: cur.correct + (rec.correct ? 1 : 0),
+        bestMs: cur.bestMs == null ? rec.timeMs : Math.min(cur.bestMs, rec.timeMs),
+        lastMs: rec.timeMs,
+      };
+      return { ...prev, [rec.questionId]: next };
+    });
+  };
+  const answeredCount = Object.keys(answersRef.current).length;
+
+  const counts = useMemo(()=>{
+    const t={}, d={};
+    TOPICS.forEach(x=> t[x] = x==="All Topics"?questions.length:questions.filter(q=>q.topic===x).length);
+    DIFFICULTIES.forEach(x=> d[x] = x==="All Difficulties"?questions.length:questions.filter(q=>q.difficulty===x).length);
+    return {t,d};
+  },[questions]);
+
+  const computeResults = () => {
+    const answers = Object.values(answersRef.current);
+    const m={};
+    answers.forEach(a=>{(m[a.topic]=m[a.topic]||{topic:a.topic,attempts:0,correct:0,timeMs:0});m[a.topic].attempts++;m[a.topic].correct+=a.correct?1:0;m[a.topic].timeMs+=a.timeMs;});
+    const total=answers.length, correct=answers.filter(a=>a.correct).length, totalTimeMs=answers.reduce((s,a)=>s+a.timeMs,0);
+    return {total,correct,accuracy:total?correct/total:0,totalTimeMs,avgTimeMs:total?totalTimeMs/total:0,
+      byTopic:Object.values(m).map(t=>({topic:t.topic,attempts:t.attempts,correct:t.correct,accuracy:t.correct/t.attempts,avgTimeMs:t.timeMs/t.attempts}))};
+  };
+
+  const finish = () => { if(answeredCount===0) return; setResults(computeResults()); setView("results"); window.scrollTo(0,0); };
+  const restart = () => { answersRef.current={}; setAnswerVersion(v=>v+1); setResults(null); setView("list"); setOpenIdx(null); };
+
+  const onFilter = (setter,val)=>{ setter(val); setPage(1); };
+
+  const statusFor = (q) => {
+    const a = answersRef.current[q.id];
+    if (!a) return undefined;
+    return a.correct ? "correct" : "wrong";
+  };
+
+  // Loading / error screens — shown before the nav even renders
+  if (loadState === "loading") {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="text-center px-6">
+          <div className="inline-block w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-slate-700 dark:text-slate-200 font-semibold text-lg">Loading practice questions…</p>
+          <p className="text-slate-400 text-sm mt-1">Fetching questions.json</p>
+        </div>
+      </div>
+    );
+  }
+  if (loadState === "error") {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
+        <div className="text-center px-6 max-w-md">
+          <p className="text-4xl mb-4">⚠️</p>
+          <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-2">Could not load questions</p>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">Make sure <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">questions.json</code> is in the same folder as <code className="bg-slate-100 dark:bg-slate-800 px-1 rounded">index.html</code> in your GitHub repo.</p>
+          <p className="text-slate-400 text-xs font-mono">{loadError}</p>
+          <button onClick={()=>window.location.reload()} className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+      {/* NAV */}
+      <nav className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur border-b border-slate-200 dark:border-slate-800">
+        <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between gap-4">
+          {/* Left: logo + tabs */}
+          <div className="flex items-center gap-4">
+            <span className="font-bold text-slate-800 dark:text-slate-100 text-base tracking-tight whitespace-nowrap hidden sm:block">UIL Math Practice</span>
+            <div className="flex items-center gap-1">
+              <a href="./index.html"
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                Home
+              </a>
+              <span
+                className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 cursor-pointer"
+                onClick={()=>{ setView("list"); setOpenIdx(null); }}>
+                Problems
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {answeredCount>0 && view==="list" && (
+              <button onClick={finish} className="px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 hover:bg-emerald-700 text-white">
+                Results ({answeredCount})
+              </button>
+            )}
+            <button onClick={()=>setView(v=>v==="review"?"list":"review")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold border transition-all
+                ${view==="review"
+                  ? "bg-amber-500 border-amber-500 text-white"
+                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400"}`}>
+              🔖 <span className="hidden sm:inline">Review</span>{bookmarks.length>0 && <span className={`ml-0.5 text-xs font-bold px-1.5 py-0.5 rounded-full ${view==="review"?"bg-amber-400":"bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"}`}>{bookmarks.length}</span>}
+            </button>
+            <button onClick={toggleTheme} title="Toggle theme"
+              className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+              {dark ? <SunIcon/> : <MoonIcon/>}
+            </button>
+            {/* Auth pill */}
+            {authUser ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:block text-xs font-semibold text-slate-500 dark:text-slate-400 max-w-[100px] truncate">
+                  {authUser.user_metadata?.display_name || authUser.email?.split("@")[0]}
+                </span>
+                <button onClick={signOut}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium">
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <a href="./index.html"
+                className="text-xs px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors">
+                Sign In
+              </a>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {view === "results" && results ? (
+        <ResultsPage results={results} onRestart={restart} onClose={()=>setView("list")} onClearHistory={()=>{ setQStats({}); }} />
+      ) : view === "review" ? (
+        <div className="max-w-6xl mx-auto px-4 py-8">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-1">Review Later</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-sm">{bookmarks.length} bookmarked problem{bookmarks.length!==1?"s":""}</p>
+              <p className="text-slate-400 dark:text-slate-600 text-xs mt-1">← Click <span className="font-semibold text-slate-500 dark:text-slate-400">Problems</span> in the nav to return to all problems</p>
+            </div>
+            {bookmarks.length>0 && (
+              <button onClick={()=>setBookmarks([])} className="text-xs text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-colors">Clear all</button>
+            )}
+          </div>
+          {bookmarks.length === 0 ? (
+            <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
+              <p className="text-4xl mb-3">🔖</p>
+              <p className="font-semibold text-slate-700 dark:text-slate-300">No bookmarks yet</p>
+              <p className="text-sm text-slate-400 mt-1">Open any problem and click "Review later" to save it here.</p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+              <div className="hidden sm:grid grid-cols-[3rem_1fr_9rem_7rem_11rem_7rem] gap-3 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                <span>#</span><span>Problem</span><span>Topic</span><span>Difficulty</span><span>Source</span><span>Date Added</span>
+              </div>
+              {questions.filter(q=>bookmarks.includes(q.id)).map((q,i) => (
+                <ProblemRow key={q.id} q={q} n={i+1} status={statusFor(q)}
+                  onOpen={()=>{ setOpenIdx(filtered.findIndex(x=>x.id===q.id)); if(filtered.findIndex(x=>x.id===q.id)===-1){ setTopic("All Topics"); setDiff("All Difficulties"); setSearch(""); } }} />
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        {/* HEADER */}
+        <div className="mb-6">
+          <h1 className="font-display text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-1">Problems</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm">UIL General Mathematics · {filtered.length} problems · real questions from 2026 District, Region &amp; TMSCA tests</p>
+        </div>
+
+        {/* FILTER BAR */}
+        <div className="flex flex-wrap items-center gap-3 mb-5">
+          <div className="relative flex-1 min-w-[200px]">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
+            <input type="text" placeholder="Search problems…" value={search}
+              onChange={e=>{setSearch(e.target.value); setPage(1);}}
+              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+          <Dropdown label="Topic" value={topic} options={TOPICS} onChange={v=>onFilter(setTopic,v)} />
+          <Dropdown label="Difficulty" value={diff} options={DIFFICULTIES} onChange={v=>onFilter(setDiff,v)} />
+        </div>
+
+        {/* TABLE */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+          {/* column header */}
+          <div className="hidden sm:grid grid-cols-[3rem_1fr_9rem_7rem_11rem_7rem] gap-3 px-4 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/80 text-xs font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+            <span>#</span><span>Problem</span><span>Topic</span><span>Difficulty</span><span>Source</span><span>Date Added</span>
+          </div>
+          {pageItems.length === 0 ? (
+            <div className="py-20 text-center text-slate-400 dark:text-slate-600">
+              <p className="text-4xl mb-3">🔍</p><p className="font-semibold">No problems found</p>
+            </div>
+          ) : pageItems.map((q, i) => {
+            const globalIdx = (pageClamped-1)*PAGE_SIZE + i;
+            return <ProblemRow key={q.id} q={q} n={globalIdx+1} status={statusFor(q)} onOpen={()=>setOpenIdx(globalIdx)} />;
+          })}
+        </div>
+
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-1.5 mt-6">
+            <button onClick={()=>setPage(p=>Math.max(1,p-1))} disabled={pageClamped===1}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${pageClamped===1?"text-slate-300 dark:text-slate-700 cursor-not-allowed":"text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>‹</button>
+            {Array.from({length: totalPages}, (_,i)=>i+1).map(p => (
+              <button key={p} onClick={()=>setPage(p)}
+                className={`w-9 h-9 rounded-lg text-sm font-medium ${p===pageClamped?"bg-blue-600 text-white":"text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>{p}</button>
+            ))}
+            <button onClick={()=>setPage(p=>Math.min(totalPages,p+1))} disabled={pageClamped===totalPages}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium ${pageClamped===totalPages?"text-slate-300 dark:text-slate-700 cursor-not-allowed":"text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"}`}>›</button>
+          </div>
+        )}
+      </div>
+      )}
+
+      {/* PROBLEM VIEW */}
+      {openIdx !== null && filtered[openIdx] && (
+        <ProblemView
+          q={filtered[openIdx]}
+          prevAnswer={answersRef.current[filtered[openIdx].id]}
+          stat={qStats[filtered[openIdx].id]}
+          isBookmarked={bookmarks.includes(filtered[openIdx].id)}
+          onToggleBookmark={()=>toggleBookmark(filtered[openIdx].id)}
+          onClose={()=>setOpenIdx(null)}
+          onAnswered={recordAnswer}
+          hasPrev={openIdx>0}
+          hasNext={openIdx<filtered.length-1}
+          onPrev={()=>setOpenIdx(i=>Math.max(0,i-1))}
+          onNext={()=>setOpenIdx(i=>Math.min(filtered.length-1,i+1))}
+          authUser={authUser}
+          allQuestions={questions}
+          answeredIds={Object.keys(answersRef.current).map(Number)}
+          onOpenQuestion={(id)=>{
+            const idx = filtered.findIndex(x=>x.id===id);
+            if(idx!==-1){ setOpenIdx(idx); }
+            else {
+              // question not in current filter — reset filters and find it
+              setTopic("All Topics"); setDiff("All Difficulties"); setSearch("");
+              // after state update, find index in full questions list
+              const qIdx = questions.findIndex(x=>x.id===id);
+              if(qIdx!==-1) setTimeout(()=>setOpenIdx(qIdx),50);
+            }
+          }}
+        />
+      )}
+
+      <footer className="border-t border-slate-200 dark:border-slate-800 py-6 text-center text-xs text-slate-400 dark:text-slate-600">
+        UIL General Mathematics Practice · Questions from 2026 UIL &amp; TMSCA competition tests, used with permission for study.
+      </footer>
+    </div>
+  );
+}
+
+// ─── SUPABASE CONFIG ───────────────────────────────────────────────────
+// Replace with your own values from supabase.com → Project Settings → API
+const SUPABASE_URL = 'https://vhodgagwcxoooqnmfpbo.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_SXqKKIMvbNZJFq9OzM0uHA_3FGZf84v';
+const _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ─── STATS HELPERS ──────────────────────────────────────────────────────
+async function saveAnswerToSupabase(user, rec) {
+  if (!user) { console.log('saveAnswer: no user, skipping'); return; }
+  console.log('saveAnswer: saving for user', user.id, 'question', rec.questionId);
+  try {
+    const { error: ansErr } = await _supabase.from('answers').insert({
+      user_id: user.id,
+      question_id: rec.questionId,
+      topic: rec.topic,
+      difficulty: rec.difficulty,
+      correct: rec.correct,
+      time_ms: rec.timeMs,
+      answered_at: new Date().toISOString(),
+    });
+    if (ansErr) console.warn('answers insert error:', ansErr.message);
+    else console.log('answers insert: success');
+
+    const { error: statErr } = await _supabase.from('user_stats').upsert({
+      user_id: user.id,
+      last_seen: new Date().toISOString(),
+      streak_updated: new Date().toDateString(),
+    }, { onConflict: 'user_id' });
+    if (statErr) console.warn('user_stats upsert error:', statErr.message);
+  } catch(e) { console.warn('saveAnswer exception:', e.message); }
+}
+
+document.getElementById("root").dataset.loaded = "1";
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
