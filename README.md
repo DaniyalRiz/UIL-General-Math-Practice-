@@ -26,14 +26,6 @@ https://daniyalriz.github.io/UIL-General-Math-Practice-/
 - Accuracy by topic
 - Dark mode
 
-## Future Features
-
-- UIL test simulation mode
-- AI-powered explanations
-- Question type filtering
-- Missed-question review
-- User accounts and progress tracking
-- Mobile optimization
 
 ## Purpose
 
