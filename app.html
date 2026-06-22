@@ -527,6 +527,102 @@ function CommunitySolutions({ q, authUser, answered }) {
   );
 }
 
+// ── Shared "History on this problem / My Notes / Similar Problems" widgets ───
+// Rendered once here, then placed inside a mobile (lg:hidden) and a desktop
+// (hidden lg:flex) wrapper by ProblemView, instead of being duplicated.
+function ProblemSidebarSections({ stat, notes, authUser, noteText, setNoteText, saveNote, deleteNote, notesSaving, similarQuestions, onOpenQuestion }) {
+  return (
+    <>
+      {/* History */}
+      {stat && stat.attempts > 0 && (
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-3">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Your history on this problem</p>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div>
+              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{Math.round(100*stat.correct/stat.attempts)}%</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">{stat.correct}/{stat.attempts} correct</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.bestMs)}</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">best time</p>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.lastMs)}</p>
+              <p className="text-[11px] text-slate-400 dark:text-slate-500">last time</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notes */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 overflow-hidden">
+        <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
+          <span className="text-base">📝</span>
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">My Notes</p>
+          {!authUser && <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">Sign in to save notes</span>}
+        </div>
+        {notes.length > 0 && (
+          <div className="divide-y divide-slate-200 dark:divide-slate-800">
+            {notes.map(n => (
+              <div key={n.id} className="px-4 py-3 flex items-start gap-3 group">
+                <div className="flex-1">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{n.note_text}</p>
+                  <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">{new Date(n.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
+                </div>
+                <button onClick={()=>deleteNote(n.id)} className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-all text-lg leading-none shrink-0 mt-0.5">×</button>
+              </div>
+            ))}
+          </div>
+        )}
+        {authUser ? (
+          <div className="px-4 py-3">
+            <textarea value={noteText} onChange={e=>setNoteText(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) saveNote(); }}
+              placeholder="Add a note for this problem… (Cmd+Enter to save)" rows={3}
+              className="w-full text-sm px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+            <button onClick={saveNote} disabled={!noteText.trim() || notesSaving}
+              className={`mt-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${noteText.trim() ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"}`}>
+              {notesSaving ? "Saving…" : "Save Note"}
+            </button>
+          </div>
+        ) : (
+          <div className="px-4 py-3">
+            <p className="text-xs text-slate-400 dark:text-slate-500"><a href="./index.html" className="text-blue-500 hover:underline">Sign in</a> to add and save notes.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Similar Problems */}
+      {similarQuestions.length > 0 && (
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
+            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Practice Similar Problems</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Build speed by drilling the same question pattern.</p>
+          </div>
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            {similarQuestions.map(sq => (
+              <div key={sq.id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{sq.title || plainText(sq.question)}</p>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    <span className={`w-1.5 h-1.5 rounded-full ${TOPIC_DOT[sq.topic]||"bg-slate-400"}`}></span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">{sq.topic}</span>
+                    <DiffPill d={sq.difficulty} />
+                    {sq.sharedTags && sq.sharedTags.slice(0,2).map(t =>
+                      <span key={t} className="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full">#{t}</span>
+                    )}
+                  </div>
+                </div>
+                <button onClick={()=>onOpenQuestion(sq.id)} className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">Open</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext, hasPrev, hasNext, isBookmarked, onToggleBookmark, authUser, allQuestions, answeredIds, onOpenQuestion }) {
   const [pending, setPending]   = useState(null);
   const [selected, setSelected] = useState(null);
@@ -910,90 +1006,9 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
             {/* on mobile, show sidebar sections inline after answering */}
             {answered && (
               <div className="lg:hidden flex flex-col gap-4 px-6 pb-4">
-                {/* History */}
-                {stat && stat.attempts > 0 && (
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-3">
-                    <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Your history on this problem</p>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div>
-                        <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{Math.round(100*stat.correct/stat.attempts)}%</p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500">{stat.correct}/{stat.attempts} correct</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.bestMs)}</p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500">best time</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.lastMs)}</p>
-                        <p className="text-[11px] text-slate-400 dark:text-slate-500">last time</p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-                {/* Notes mobile */}
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                    <span className="text-base">📝</span>
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">My Notes</p>
-                    {!authUser && <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">Sign in to save notes</span>}
-                  </div>
-                  {notes.length > 0 && (
-                    <div className="divide-y divide-slate-200 dark:divide-slate-800">
-                      {notes.map(n => (
-                        <div key={n.id} className="px-4 py-3 flex items-start gap-3 group">
-                          <div className="flex-1">
-                            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{n.note_text}</p>
-                            <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">{new Date(n.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
-                          </div>
-                          <button onClick={()=>deleteNote(n.id)} className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-all text-lg leading-none shrink-0 mt-0.5">×</button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {authUser ? (
-                    <div className="px-4 py-3">
-                      <textarea value={noteText} onChange={e=>setNoteText(e.target.value)}
-                        onKeyDown={e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) saveNote(); }}
-                        placeholder="Add a note for this problem… (Cmd+Enter to save)" rows={2}
-                        className="w-full text-sm px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                      <button onClick={saveNote} disabled={!noteText.trim() || notesSaving}
-                        className={`mt-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${noteText.trim() ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"}`}>
-                        {notesSaving ? "Saving…" : "Save Note"}
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="px-4 py-3">
-                      <p className="text-xs text-slate-400 dark:text-slate-500"><a href="./index.html" className="text-blue-500 hover:underline">Sign in</a> to add and save notes.</p>
-                    </div>
-                  )}
-                </div>
-                {/* Similar mobile */}
-                {similarQuestions.length > 0 && (
-                  <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
-                      <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Practice Similar Problems</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Build speed by drilling the same question pattern.</p>
-                    </div>
-                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                      {similarQuestions.map(sq => (
-                        <div key={sq.id} className="px-4 py-3 flex items-center gap-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{sq.title || plainText(sq.question)}</p>
-                            <div className="flex items-center gap-2 mt-1 flex-wrap">
-                              <span className={`w-1.5 h-1.5 rounded-full ${TOPIC_DOT[sq.topic]||"bg-slate-400"}`}></span>
-                              <span className="text-xs text-slate-500 dark:text-slate-400">{sq.topic}</span>
-                              <DiffPill d={sq.difficulty} />
-                              {sq.sharedTags && sq.sharedTags.slice(0,2).map(t =>
-                                <span key={t} className="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full">#{t}</span>
-                              )}
-                            </div>
-                          </div>
-                          <button onClick={()=>onOpenQuestion(sq.id)} className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">Open</button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <ProblemSidebarSections stat={stat} notes={notes} authUser={authUser}
+                  noteText={noteText} setNoteText={setNoteText} saveNote={saveNote} deleteNote={deleteNote}
+                  notesSaving={notesSaving} similarQuestions={similarQuestions} onOpenQuestion={onOpenQuestion} />
               </div>
             )}
 
@@ -1002,94 +1017,9 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
           {/* ── RIGHT sidebar: only on desktop, only after answering ── */}
           {answered && (
             <div className="hidden lg:flex flex-col gap-4 w-80 xl:w-96 shrink-0 border-l border-slate-100 dark:border-slate-800 px-5 pt-5 pb-4 overflow-y-auto">
-
-              {/* 1. History */}
-              {stat && stat.attempts > 0 && (
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 px-4 py-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Your history on this problem</p>
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div>
-                      <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{Math.round(100*stat.correct/stat.attempts)}%</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500">{stat.correct}/{stat.attempts} correct</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.bestMs)}</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500">best time</p>
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-slate-800 dark:text-slate-100">{fmtTime(stat.lastMs)}</p>
-                      <p className="text-[11px] text-slate-400 dark:text-slate-500">last time</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* 2. Notes */}
-              <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 overflow-hidden">
-                <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-                  <span className="text-base">📝</span>
-                  <p className="text-sm font-bold text-slate-700 dark:text-slate-200">My Notes</p>
-                  {!authUser && <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">Sign in to save</span>}
-                </div>
-                {notes.length > 0 && (
-                  <div className="divide-y divide-slate-200 dark:divide-slate-800">
-                    {notes.map(n => (
-                      <div key={n.id} className="px-4 py-3 flex items-start gap-3 group">
-                        <div className="flex-1">
-                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{n.note_text}</p>
-                          <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">{new Date(n.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'})}</p>
-                        </div>
-                        <button onClick={()=>deleteNote(n.id)} className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 transition-all text-lg leading-none shrink-0 mt-0.5">×</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {authUser ? (
-                  <div className="px-4 py-3">
-                    <textarea value={noteText} onChange={e=>setNoteText(e.target.value)}
-                      onKeyDown={e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) saveNote(); }}
-                      placeholder="Add a note… (Cmd+Enter to save)" rows={3}
-                      className="w-full text-sm px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-600 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"/>
-                    <button onClick={saveNote} disabled={!noteText.trim() || notesSaving}
-                      className={`mt-2 px-4 py-1.5 rounded-lg text-xs font-semibold transition-colors ${noteText.trim() ? "bg-blue-600 hover:bg-blue-700 text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed"}`}>
-                      {notesSaving ? "Saving…" : "Save Note"}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="px-4 py-3">
-                    <p className="text-xs text-slate-400 dark:text-slate-500"><a href="./index.html" className="text-blue-500 hover:underline">Sign in</a> to add and save notes.</p>
-                  </div>
-                )}
-              </div>
-
-              {/* 3. Similar Problems */}
-              {similarQuestions.length > 0 && (
-                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                  <div className="px-4 py-3 bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-800">
-                    <p className="text-sm font-bold text-slate-700 dark:text-slate-200">Practice Similar Problems</p>
-                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Build speed by drilling the same question pattern.</p>
-                  </div>
-                  <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                    {similarQuestions.map(sq => (
-                      <div key={sq.id} className="px-4 py-3 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 transition-colors">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{sq.title || plainText(sq.question)}</p>
-                          <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                            <span className={`w-1.5 h-1.5 rounded-full ${TOPIC_DOT[sq.topic]||"bg-slate-400"}`}></span>
-                            <span className="text-xs text-slate-500 dark:text-slate-400">{sq.topic}</span>
-                            <DiffPill d={sq.difficulty} />
-                            {sq.sharedTags && sq.sharedTags.slice(0,1).map(t =>
-                              <span key={t} className="text-xs px-1.5 py-0.5 bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full">#{t}</span>
-                            )}
-                          </div>
-                        </div>
-                        <button onClick={()=>onOpenQuestion(sq.id)} className="shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">Open</button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
+              <ProblemSidebarSections stat={stat} notes={notes} authUser={authUser}
+                noteText={noteText} setNoteText={setNoteText} saveNote={saveNote} deleteNote={deleteNote}
+                notesSaving={notesSaving} similarQuestions={similarQuestions} onOpenQuestion={onOpenQuestion} />
             </div>
           )}{/* end right sidebar */}
 
@@ -2498,7 +2428,7 @@ function AdminQuestionManager({ authUser }) {
     if (adminPanelTab !== 'editQuestions') return;
     setQuestionListLoading(true);
     _supabase
-      .from('public_questions')
+      .from('questions')
       .select('*')
       .order('id', { ascending: true })
       .then(({ data, error }) => {
@@ -2581,10 +2511,21 @@ function AdminQuestionManager({ authUser }) {
     set(target, (form[target] || '') + snippet);
   };
 
+  const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+  const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+
   const uploadImage = async (file) => {
     if (!file) return;
     if (!form.id) {
       setMessage('Question ID not yet generated. Wait a moment and try again.');
+      return;
+    }
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setMessage('Please choose a PNG, JPEG, WEBP, or GIF image.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setMessage('Image is too large. Please use a file under 5 MB.');
       return;
     }
     setImageUploading(true);
@@ -2595,7 +2536,7 @@ function AdminQuestionManager({ authUser }) {
 
     const { error } = await _supabase.storage
       .from('question-images')
-      .upload(path, file, { upsert: true, contentType: file.type || 'image/png' });
+      .upload(path, file, { upsert: true, contentType: file.type });
 
     setImageUploading(false);
 
@@ -2960,6 +2901,34 @@ function App() {
   const [recommendedMode, setRecommendedMode] = useState(false);
   const [recStatus, setRecStatus] = useState("All");
   const [recSort, setRecSort] = useState("Most Recent");
+
+  // Rebuild per-question stats from the `attempts` table on login. Answers can only be
+  // submitted while signed in, so server history is authoritative — this keeps the list's
+  // status dots correct on a new device/browser instead of relying on local cache alone.
+  useEffect(() => {
+    if (!authUser) return;
+    let cancelled = false;
+    _supabase
+      .from('attempts')
+      .select('question_id,is_correct,time_taken_ms,created_at')
+      .eq('user_id', authUser.id)
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return;
+        const agg = {};
+        data.forEach(r => {
+          const cur = agg[r.question_id] || { attempts: 0, correct: 0, bestMs: null, lastMs: null };
+          const ms = r.time_taken_ms || 0;
+          cur.attempts += 1;
+          if (r.is_correct) cur.correct += 1;
+          cur.bestMs = cur.bestMs == null ? ms : Math.min(cur.bestMs, ms);
+          cur.lastMs = ms; // rows are ascending by created_at, so the last write is the most recent
+          agg[r.question_id] = cur;
+        });
+        setQStats(agg);
+      });
+    return () => { cancelled = true; };
+  }, [authUser?.id]);
 
   // ── Browser back/forward history management ───────────────────────────────
   // Push a history entry when opening a problem or switching tabs so the

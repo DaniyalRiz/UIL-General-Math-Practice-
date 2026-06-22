@@ -440,13 +440,6 @@ document.addEventListener('DOMContentLoaded', function () {
   window.handleSignOut = async function() {
     await supabase.auth.signOut();
   };
-  window.handleGoogleAuth = async function() {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: 'https://daniyalriz.github.io/UIL-General-Math-Practice-/' }
-    });
-    if (error) console.error('Google auth error:', error.message);
-  };
 
   // ─── AUTH STATE LISTENER ──────────────────────────────────────────────────
   supabase.auth.onAuthStateChange((_event, session) => {
