@@ -2377,6 +2377,348 @@ function AdminReports({ authUser }) {
   );
 }
 
+const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+
+// ── Review Imports: load a locally-extracted draft JSON (questions pulled from a
+// PDF by Claude in a separate session), preview each with real LaTeX, edit/approve/
+// reject per question, then publish only the approved ones in one batched write.
+// Nothing here ever touches Supabase until "Publish Approved" is clicked.
+function ReviewImportsPanel({ authUser }) {
+  const [draftRows, setDraftRows] = useState([]);
+  const [parseError, setParseError] = useState('');
+  const [imageMap, setImageMap] = useState({}); // filename -> { file, url }
+  const [publishing, setPublishing] = useState(false);
+  const [publishMessage, setPublishMessage] = useState('');
+
+  const blankDraftRow = () => ({
+    title: '', topic: 'Algebra 1 & 2', difficulty: 'Easy', source: '',
+    question: '', choices: ['(A) ', '(B) ', '(C) ', '(D) ', '(E) '],
+    answer: '', explanation: '', tags: [],
+    original_test: '', original_question_number: '', source_reference: '',
+    image_pending_filename: '', image_alt: '',
+  });
+
+  const loadDraftFile = (file) => {
+    if (!file) return;
+    setParseError('');
+    setPublishMessage('');
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try {
+        parsed = JSON.parse(reader.result);
+      } catch (e) {
+        setParseError('Could not parse that file as JSON: ' + e.message);
+        return;
+      }
+      if (!Array.isArray(parsed)) {
+        setParseError('Draft file must be a JSON array of question objects.');
+        return;
+      }
+      setDraftRows(parsed.map(q => ({
+        ...blankDraftRow(),
+        ...q,
+        choices: Array.isArray(q.choices) && q.choices.length ? q.choices : blankDraftRow().choices,
+        tags: Array.isArray(q.tags) ? q.tags : (typeof q.tags === 'string' ? q.tags.split(',').map(t=>t.trim()).filter(Boolean) : []),
+        _key: crypto.randomUUID(),
+        _status: 'pending', // 'pending' | 'approved' | 'rejected' | 'published'
+        _publishError: '',
+      })));
+    };
+    reader.readAsText(file);
+  };
+
+  const loadImageFiles = (fileList) => {
+    const files = Array.from(fileList || []);
+    if (!files.length) return;
+    setImageMap(prev => {
+      const next = { ...prev };
+      files.forEach(file => {
+        if (next[file.name]) URL.revokeObjectURL(next[file.name].url);
+        next[file.name] = { file, url: URL.createObjectURL(file) };
+      });
+      return next;
+    });
+  };
+
+  const updateRow = (key, field, value) => {
+    setDraftRows(prev => prev.map(r => r._key === key ? { ...r, [field]: value } : r));
+  };
+  const updateChoice = (key, idx, value) => {
+    setDraftRows(prev => prev.map(r => {
+      if (r._key !== key) return r;
+      const choices = [...r.choices]; choices[idx] = value;
+      return { ...r, choices };
+    }));
+  };
+  const setStatus = (key, status) => updateRow(key, '_status', status);
+
+  const counts = useMemo(() => ({
+    pending: draftRows.filter(r => r._status === 'pending').length,
+    approved: draftRows.filter(r => r._status === 'approved').length,
+    rejected: draftRows.filter(r => r._status === 'rejected').length,
+    published: draftRows.filter(r => r._status === 'published').length,
+  }), [draftRows]);
+
+  const publishApproved = async () => {
+    const approved = draftRows.filter(r => r._status === 'approved');
+    if (!approved.length) {
+      setPublishMessage('No approved questions to publish.');
+      return;
+    }
+
+    // Validate before writing anything.
+    const errors = [];
+    approved.forEach(r => {
+      if (!r.question.trim()) errors.push(`"${r.title || 'Untitled'}": missing question text.`);
+      const filledChoices = r.choices.filter(c => c && c.trim());
+      if (filledChoices.length < 2) errors.push(`"${r.title || 'Untitled'}": needs at least 2 choices.`);
+      if (!r.answer.trim()) errors.push(`"${r.title || 'Untitled'}": missing correct answer.`);
+      if (!r.topic) errors.push(`"${r.title || 'Untitled'}": missing topic.`);
+    });
+    if (errors.length) {
+      setPublishMessage('Fix these before publishing: ' + errors.join(' '));
+      return;
+    }
+
+    setPublishing(true);
+    setPublishMessage('');
+
+    const { data: idRows } = await _supabase
+      .from('questions')
+      .select('id')
+      .order('id', { ascending: false })
+      .limit(1);
+    let nextId = idRows && idRows.length > 0 ? idRows[0].id + 1 : 1;
+
+    const rowsToUpsert = [];
+    const idByKey = {};
+    for (const r of approved) {
+      const id = nextId++;
+      idByKey[r._key] = id;
+
+      let imageUrl = r.image || null;
+      let imageAlt = r.image_alt || null;
+      const matchedImage = r.image_pending_filename ? imageMap[r.image_pending_filename] : null;
+      if (matchedImage) {
+        if (!ALLOWED_IMAGE_TYPES.includes(matchedImage.file.type)) {
+          setPublishing(false);
+          setPublishMessage(`"${r.title || 'Untitled'}": attached image must be PNG, JPEG, WEBP, or GIF.`);
+          return;
+        }
+        if (matchedImage.file.size > MAX_IMAGE_BYTES) {
+          setPublishing(false);
+          setPublishMessage(`"${r.title || 'Untitled'}": attached image is over 5 MB.`);
+          return;
+        }
+        const ext = (matchedImage.file.name.split('.').pop() || 'png').toLowerCase();
+        const path = `${id}/question-${id}-${Date.now()}.${ext}`;
+        const { error: uploadErr } = await _supabase.storage
+          .from('question-images')
+          .upload(path, matchedImage.file, { upsert: true, contentType: matchedImage.file.type });
+        if (uploadErr) {
+          setPublishing(false);
+          setPublishMessage(`"${r.title || 'Untitled'}": image upload failed — ${uploadErr.message}`);
+          return;
+        }
+        const { data: pub } = _supabase.storage.from('question-images').getPublicUrl(path);
+        imageUrl = pub.publicUrl;
+        imageAlt = imageAlt || (r.title ? `Image for ${r.title}` : `Image for question ${id}`);
+      }
+
+      rowsToUpsert.push({
+        id,
+        title: r.title || null,
+        topic: r.topic,
+        difficulty: r.difficulty,
+        source: r.source || null,
+        question: r.question,
+        choices: r.choices.filter(Boolean),
+        answer: r.answer,
+        explanation: r.explanation || null,
+        tags: r.tags,
+        date_added: new Date().toISOString().slice(0, 10),
+        original_test: r.original_test || r.source || null,
+        original_question_number: r.original_question_number ? Number(r.original_question_number) : null,
+        source_reference: r.source_reference || null,
+        image: imageUrl,
+        image_alt: imageAlt,
+      });
+    }
+
+    const { error } = await _supabase.from('questions').upsert(rowsToUpsert, { onConflict: 'id' });
+    setPublishing(false);
+
+    if (error) {
+      setPublishMessage('Publish failed — nothing was saved: ' + error.message);
+      return;
+    }
+
+    setDraftRows(prev => prev.map(r =>
+      idByKey[r._key] != null ? { ...r, _status: 'published', id: idByKey[r._key] } : r
+    ));
+    setPublishMessage(`Published ${rowsToUpsert.length} question(s).`);
+  };
+
+  const isAdmin = authUser && ADMIN_EMAILS.includes(authUser.email || '');
+  if (!isAdmin) {
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-16 text-center">
+        <p className="text-5xl mb-4">🔒</p>
+        <p className="font-display text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Admin Only</p>
+        <p className="text-slate-500 dark:text-slate-400">Review Imports is only available to the Rizvi admin account.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+        <h2 className="font-display text-2xl font-black text-slate-900 dark:text-white mb-1">Review Imports</h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          Load a draft JSON file (extracted from a PDF), review/edit each question with a live preview, then approve
+          and publish only the ones you've checked. Nothing is saved to Supabase until you click Publish Approved.
+        </p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Draft questions JSON</span>
+            <input type="file" accept="application/json" onChange={e => loadDraftFile(e.target.files?.[0])}
+              className="text-sm text-slate-600 dark:text-slate-300" />
+          </label>
+          <label className="flex flex-col gap-1.5">
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Diagram images (optional, can pick multiple)</span>
+            <input type="file" accept="image/*" multiple onChange={e => loadImageFiles(e.target.files)}
+              className="text-sm text-slate-600 dark:text-slate-300" />
+          </label>
+        </div>
+        {parseError && <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{parseError}</p>}
+        {draftRows.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">{draftRows.length} loaded</span>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400">{counts.pending} pending</span>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400">{counts.approved} approved</span>
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400">{counts.rejected} rejected</span>
+            {counts.published > 0 && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400">{counts.published} published</span>}
+            <button onClick={publishApproved} disabled={publishing || counts.approved === 0}
+              className="ml-auto px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white">
+              {publishing ? 'Publishing…' : `Publish Approved (${counts.approved})`}
+            </button>
+          </div>
+        )}
+        {publishMessage && <p className={`mt-3 text-sm ${publishMessage.startsWith('Published') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{publishMessage}</p>}
+      </div>
+
+      {draftRows.map(r => {
+        const borderClass = r._status === 'approved' ? 'border-emerald-300 dark:border-emerald-600'
+          : r._status === 'rejected' ? 'border-rose-300 dark:border-rose-700 opacity-60'
+          : r._status === 'published' ? 'border-blue-300 dark:border-blue-600'
+          : 'border-slate-200 dark:border-slate-800';
+        const matchedImage = r.image_pending_filename ? imageMap[r.image_pending_filename] : null;
+
+        return (
+          <div key={r._key} className={`rounded-2xl border-2 ${borderClass} bg-white dark:bg-slate-900 p-5`}>
+            <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider
+                  ${r._status === 'approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400'
+                    : r._status === 'rejected' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400'
+                    : r._status === 'published' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-400'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'}`}>
+                  {r._status}{r.id != null ? ` · #${r.id}` : ''}
+                </span>
+                <span className={`w-2 h-2 rounded-full ${TOPIC_DOT[r.topic]||'bg-slate-400'}`}></span>
+                <DiffPill d={r.difficulty} />
+              </div>
+              {r._status !== 'published' && (
+                <div className="flex items-center gap-2">
+                  <button onClick={()=>setStatus(r._key, 'approved')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white">Approve</button>
+                  <button onClick={()=>setStatus(r._key, 'rejected')}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white">Reject</button>
+                  {r._status !== 'pending' && (
+                    <button onClick={()=>setStatus(r._key, 'pending')}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">Reset</button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-4">
+              {/* Editable fields */}
+              <div className="space-y-2">
+                <input value={r.title} onChange={e=>updateRow(r._key,'title',e.target.value)} placeholder="Title"
+                  className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm"/>
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={r.topic} onChange={e=>updateRow(r._key,'topic',e.target.value)}
+                    className="px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm">
+                    {TOPICS.filter(t=>t!=='All Topics' && !t.startsWith('Column')).map(t=><option key={t}>{t}</option>)}
+                  </select>
+                  <select value={r.difficulty} onChange={e=>updateRow(r._key,'difficulty',e.target.value)}
+                    className="px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm">
+                    <option>Easy</option><option>Medium</option><option>Hard</option>
+                  </select>
+                </div>
+                <input value={r.source} onChange={e=>updateRow(r._key,'source',e.target.value)} placeholder="Source, e.g. 2026 UIL District"
+                  className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm"/>
+                <textarea value={r.question} onChange={e=>updateRow(r._key,'question',e.target.value)} rows={3}
+                  placeholder="Question text, use \\( ... \\) for math"
+                  className="w-full px-3 py-2 rounded-xl border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm resize-none"/>
+                {r.choices.map((c,i)=>(
+                  <input key={i} value={c} onChange={e=>updateChoice(r._key,i,e.target.value)} placeholder={`Choice ${String.fromCharCode(65+i)}`}
+                    className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm"/>
+                ))}
+                <input value={r.answer} onChange={e=>updateRow(r._key,'answer',e.target.value)} placeholder="Correct answer, exactly as stored, e.g. (C) 8"
+                  className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm"/>
+                <textarea value={r.explanation} onChange={e=>updateRow(r._key,'explanation',e.target.value)} rows={3}
+                  placeholder="Worked explanation"
+                  className="w-full px-3 py-2 rounded-xl border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm resize-none"/>
+                <input value={r.tags.join(', ')} onChange={e=>updateRow(r._key,'tags', e.target.value.split(',').map(t=>t.trim()).filter(Boolean))}
+                  placeholder="Tags separated by commas"
+                  className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm"/>
+
+                {r.image_pending_filename && (
+                  <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3">
+                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
+                      Needs image: <code>{r.image_pending_filename}</code>
+                    </p>
+                    {matchedImage ? (
+                      <img src={matchedImage.url} alt="Attached diagram preview" className="max-w-full max-h-40 rounded-lg border border-slate-200 dark:border-slate-700" />
+                    ) : (
+                      <p className="text-xs text-rose-600 dark:text-rose-400">Not attached yet — pick this file in the image picker above.</p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Live preview */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Live Preview</p>
+                <p className="font-display text-base font-black text-slate-900 dark:text-white mb-2">{r.title || 'Untitled Question'}</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"><MathText text={r.question || 'Question preview will appear here.'} /></p>
+                {matchedImage && <img src={matchedImage.url} alt="Diagram" className="mt-3 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white" />}
+                <div className="mt-3 space-y-1.5">
+                  {r.choices.filter(Boolean).map((c,i)=>(
+                    <div key={i} className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
+                      <MathText text={c} />
+                    </div>
+                  ))}
+                </div>
+                {r.answer && (
+                  <p className="mt-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">Answer: <MathText text={r.answer} /></p>
+                )}
+                {r.explanation && (
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300"><MathText text={r.explanation} /></p>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AdminQuestionManager({ authUser }) {
   const blank = {
     id: '',
@@ -2511,9 +2853,6 @@ function AdminQuestionManager({ authUser }) {
     set(target, (form[target] || '') + snippet);
   };
 
-  const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-  const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
-
   const uploadImage = async (file) => {
     if (!file) return;
     if (!form.id) {
@@ -2619,6 +2958,10 @@ function AdminQuestionManager({ authUser }) {
             className={`px-4 py-2 rounded-lg text-sm font-semibold ${adminPanelTab==='editQuestions' ? 'bg-violet-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
             Edit Questions
           </button>
+          <button onClick={()=>setAdminPanelTab('reviewImports')}
+            className={`px-4 py-2 rounded-lg text-sm font-semibold ${adminPanelTab==='reviewImports' ? 'bg-emerald-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
+            Review Imports
+          </button>
         </div>
       </div>
 
@@ -2626,6 +2969,8 @@ function AdminQuestionManager({ authUser }) {
         <AdminUserActivity authUser={authUser} />
       ) : adminPanelTab === 'reports' ? (
         <AdminReports authUser={authUser} />
+      ) : adminPanelTab === 'reviewImports' ? (
+        <ReviewImportsPanel authUser={authUser} />
       ) : adminPanelTab === 'editQuestions' ? (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800">

@@ -143,3 +143,6 @@ vite.config.ts.timestamp-*
 .vite/
 
 .claude/
+
+# Local PDF question-import drafts (review before publishing, never committed)
+imports/
