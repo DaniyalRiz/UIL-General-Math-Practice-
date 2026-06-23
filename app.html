@@ -2379,6 +2379,43 @@ function AdminReports({ authUser }) {
 
 const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_IMAGE_DIMENSION = 1280; // longest side, in px, after resize
+
+// Downscale an image to a sane max dimension before upload. Question diagrams only ever
+// display at a few hundred px wide in the UI, so admin-uploaded screenshots/photos (which
+// can easily be several thousand px and multiple MB) get shrunk client-side, never upscaled.
+// GIFs are passed through untouched — canvas would flatten an animated GIF to one frame.
+async function resizeImageForUpload(file, { maxDim = MAX_IMAGE_DIMENSION, jpegQuality = 0.85 } = {}) {
+  if (file.type === 'image/gif') return file;
+
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch (e) {
+    return file; // unreadable as an image — let the normal upload/validation handle it
+  }
+
+  const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+  const width = Math.round(bitmap.width * scale);
+  const height = Math.round(bitmap.height * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, width, height);
+
+  // PNG stays PNG (crisp lines + transparency for diagrams); everything else re-encodes
+  // as JPEG at a controlled quality to keep file size down.
+  const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+  const blob = await new Promise(resolve =>
+    canvas.toBlob(resolve, outputType, outputType === 'image/jpeg' ? jpegQuality : undefined)
+  );
+  if (!blob) return file;
+
+  const ext = outputType === 'image/png' ? 'png' : 'jpg';
+  const newName = file.name.replace(/\.[^.]+$/, '') + `-resized.${ext}`;
+  return new File([blob], newName, { type: outputType });
+}
 
 // ── Review Imports: load a locally-extracted draft JSON (questions pulled from a
 // PDF by Claude in a separate session), preview each with real LaTeX, edit/approve/
@@ -2390,6 +2427,12 @@ function ReviewImportsPanel({ authUser }) {
   const [imageMap, setImageMap] = useState({}); // filename -> { file, url }
   const [publishing, setPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
+  const [pdfFile, setPdfFile] = useState(null);
+  const [pdfSourceLabel, setPdfSourceLabel] = useState('');
+  const [pdfOriginalTest, setPdfOriginalTest] = useState('');
+  const [pdfAnswerKey, setPdfAnswerKey] = useState('');
+  const [pdfImporting, setPdfImporting] = useState(false);
+  const [pdfImportMessage, setPdfImportMessage] = useState('');
 
   const blankDraftRow = () => ({
     title: '', topic: 'Algebra 1 & 2', difficulty: 'Easy', source: '',
@@ -2442,6 +2485,79 @@ function ReviewImportsPanel({ authUser }) {
     });
   };
 
+  // Maps a draft_questions table row (from the PDF import pipeline) into the same
+  // shape blankDraftRow()-derived rows use, so the rest of the panel (editing,
+  // approve/reject, live preview, publish) doesn't need to know where a row came from.
+  const draftQuestionRowToLocal = (row) => ({
+    ...blankDraftRow(),
+    title: row.title || '',
+    topic: row.topic,
+    difficulty: row.difficulty,
+    source: row.source || '',
+    question: row.question,
+    choices: Array.isArray(row.choices) && row.choices.length ? row.choices : blankDraftRow().choices,
+    answer: row.answer || '',
+    explanation: row.explanation || '',
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    original_test: row.original_test || '',
+    original_question_number: row.original_question_number != null ? String(row.original_question_number) : '',
+    source_reference: row.source_reference || '',
+    image_alt: row.image_alt || '',
+    needs_image: !!row.needs_image,
+    verification_status: row.verification_status || null,
+    verification_notes: row.verification_notes || null,
+    _key: row.id,
+    _draftId: row.id,
+    _status: ['approved', 'rejected', 'published'].includes(row.review_status) ? row.review_status : 'pending',
+    _publishError: '',
+  });
+
+  const loadDraftsFromBatch = async (batchId) => {
+    const { data, error } = await _supabase.from('draft_questions').select('*').eq('batch_id', batchId);
+    if (error) {
+      setPdfImportMessage('Extraction succeeded but loading the drafts failed: ' + error.message);
+      return;
+    }
+    setDraftRows(prev => [...prev, ...(data || []).map(draftQuestionRowToLocal)]);
+  };
+
+  const extractFromPdf = async () => {
+    if (!pdfFile) { setPdfImportMessage('Pick a PDF file first.'); return; }
+    if (pdfFile.type !== 'application/pdf') { setPdfImportMessage('That file is not a PDF.'); return; }
+    if (pdfFile.size > 15 * 1024 * 1024) { setPdfImportMessage('PDF is over 15 MB — split it into smaller page ranges first.'); return; }
+
+    setPdfImporting(true);
+    setPdfImportMessage('Uploading to Claude for extraction — this can take 30–60 seconds…');
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(pdfFile);
+      });
+      const pdf_base64 = dataUrl.split(',')[1];
+      const { data, error } = await _supabase.functions.invoke('import-test-pdf', {
+        body: {
+          pdf_base64,
+          source_label: pdfSourceLabel || null,
+          original_test: pdfOriginalTest || null,
+          answer_key: pdfAnswerKey || null,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      await loadDraftsFromBatch(data.batch_id);
+      setPdfImportMessage(
+        `Extracted ${data.questions_extracted} question(s)` +
+        (data.mismatches ? ` — ${data.mismatches} answer mismatch(es), check the verification badges below.` : ' — all answers matched the key.')
+      );
+    } catch (e) {
+      setPdfImportMessage('Extraction failed: ' + (e.message || String(e)));
+    } finally {
+      setPdfImporting(false);
+    }
+  };
+
   const updateRow = (key, field, value) => {
     setDraftRows(prev => prev.map(r => r._key === key ? { ...r, [field]: value } : r));
   };
@@ -2452,7 +2568,14 @@ function ReviewImportsPanel({ authUser }) {
       return { ...r, choices };
     }));
   };
-  const setStatus = (key, status) => updateRow(key, '_status', status);
+  const setStatus = (key, status) => {
+    updateRow(key, '_status', status);
+    const row = draftRows.find(r => r._key === key);
+    if (row?._draftId) {
+      _supabase.from('draft_questions').update({ review_status: status }).eq('id', row._draftId)
+        .then(({ error }) => { if (error) console.error('Failed to persist review status:', error.message); });
+    }
+  };
 
   const counts = useMemo(() => ({
     pending: draftRows.filter(r => r._status === 'pending').length,
@@ -2512,11 +2635,17 @@ function ReviewImportsPanel({ authUser }) {
           setPublishMessage(`"${r.title || 'Untitled'}": attached image is over 5 MB.`);
           return;
         }
-        const ext = (matchedImage.file.name.split('.').pop() || 'png').toLowerCase();
+        const resizedImage = await resizeImageForUpload(matchedImage.file);
+        if (resizedImage.size > MAX_IMAGE_BYTES) {
+          setPublishing(false);
+          setPublishMessage(`"${r.title || 'Untitled'}": attached image is still too large after resizing.`);
+          return;
+        }
+        const ext = (resizedImage.name.split('.').pop() || 'png').toLowerCase();
         const path = `${id}/question-${id}-${Date.now()}.${ext}`;
         const { error: uploadErr } = await _supabase.storage
           .from('question-images')
-          .upload(path, matchedImage.file, { upsert: true, contentType: matchedImage.file.type });
+          .upload(path, resizedImage, { upsert: true, contentType: resizedImage.type });
         if (uploadErr) {
           setPublishing(false);
           setPublishMessage(`"${r.title || 'Untitled'}": image upload failed — ${uploadErr.message}`);
@@ -2555,6 +2684,13 @@ function ReviewImportsPanel({ authUser }) {
       return;
     }
 
+    // Keep the source draft_questions rows in sync so a page refresh doesn't
+    // show already-published drafts as pending again.
+    const publishedDraftIds = approved.filter(r => r._draftId).map(r => r._draftId);
+    if (publishedDraftIds.length) {
+      await _supabase.from('draft_questions').update({ review_status: 'published' }).in('id', publishedDraftIds);
+    }
+
     setDraftRows(prev => prev.map(r =>
       idByKey[r._key] != null ? { ...r, _status: 'published', id: idByKey[r._key] } : r
     ));
@@ -2580,14 +2716,41 @@ function ReviewImportsPanel({ authUser }) {
           Load a draft JSON file (extracted from a PDF), review/edit each question with a live preview, then approve
           and publish only the ones you've checked. Nothing is saved to Supabase until you click Publish Approved.
         </p>
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 mb-4">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Import from PDF (automatic)</p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <input type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)}
+              className="text-sm text-slate-600 dark:text-slate-300 sm:col-span-2" />
+            <input value={pdfSourceLabel} onChange={e => setPdfSourceLabel(e.target.value)} placeholder="Source label, e.g. TMSCA HSM Test 5"
+              className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm" />
+            <input value={pdfOriginalTest} onChange={e => setPdfOriginalTest(e.target.value)} placeholder="Original test, e.g. 2025-2026 TMSCA Mathematics Test 5"
+              className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm" />
+            <textarea value={pdfAnswerKey} onChange={e => setPdfAnswerKey(e.target.value)} rows={2}
+              placeholder="Answer key (optional), e.g. 1.C 2.C 3.D 4.E or just C, C, D, E"
+              className="w-full px-3 py-2 rounded-xl border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm resize-none sm:col-span-2" />
+          </div>
+          <div className="mt-3 flex items-center gap-3">
+            <button onClick={extractFromPdf} disabled={pdfImporting || !pdfFile}
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white">
+              {pdfImporting ? 'Extracting…' : 'Extract Questions'}
+            </button>
+            {pdfImportMessage && (
+              <p className={`text-sm ${pdfImportMessage.startsWith('Extraction failed') ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-300'}`}>{pdfImportMessage}</p>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">
+            Diagrams aren't auto-cropped yet — questions that need one are flagged below for manual follow-up before publishing.
+          </p>
+        </div>
+
         <div className="grid sm:grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">1. Draft questions JSON</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Or load a draft questions JSON (manual extraction)</span>
             <input type="file" accept="application/json" onChange={e => loadDraftFile(e.target.files?.[0])}
               className="text-sm text-slate-600 dark:text-slate-300" />
           </label>
           <label className="flex flex-col gap-1.5">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">2. Diagram images (optional, can pick multiple)</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Diagram images for the manual path (optional, can pick multiple)</span>
             <input type="file" accept="image/*" multiple onChange={e => loadImageFiles(e.target.files)}
               className="text-sm text-slate-600 dark:text-slate-300" />
           </label>
@@ -2629,6 +2792,15 @@ function ReviewImportsPanel({ authUser }) {
                 </span>
                 <span className={`w-2 h-2 rounded-full ${TOPIC_DOT[r.topic]||'bg-slate-400'}`}></span>
                 <DiffPill d={r.difficulty} />
+                {r.verification_status === 'match' && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400">✓ answer key match</span>
+                )}
+                {r.verification_status === 'mismatch' && (
+                  <span title={r.verification_notes || ''} className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-400">⚠ answer key mismatch</span>
+                )}
+                {r.needs_image && (
+                  <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400">⚠ needs diagram</span>
+                )}
               </div>
               {r._status !== 'published' && (
                 <div className="flex items-center gap-2">
@@ -2687,6 +2859,15 @@ function ReviewImportsPanel({ authUser }) {
                     ) : (
                       <p className="text-xs text-rose-600 dark:text-rose-400">Not attached yet — pick this file in the image picker above.</p>
                     )}
+                  </div>
+                )}
+                {r.needs_image && !r.image_pending_filename && (
+                  <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-700 p-3 bg-amber-50 dark:bg-amber-500/10">
+                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">⚠ Diagram needed (not auto-cropped yet)</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-400">{r.image_alt || 'No description provided.'}</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                      Either reject this question for now, or publish it and attach the diagram afterward from the question editor's image upload.
+                    </p>
                   </div>
                 )}
               </div>
@@ -2869,13 +3050,21 @@ function AdminQuestionManager({ authUser }) {
     }
     setImageUploading(true);
     setMessage('');
-    const ext = (file.name.split('.').pop() || 'png').toLowerCase();
+
+    const resized = await resizeImageForUpload(file);
+    if (resized.size > MAX_IMAGE_BYTES) {
+      setImageUploading(false);
+      setMessage('Image is still too large after resizing. Please use a smaller file.');
+      return;
+    }
+
+    const ext = (resized.name.split('.').pop() || 'png').toLowerCase();
     const safeName = `question-${form.id}-${Date.now()}.${ext}`;
     const path = `${form.id}/${safeName}`;
 
     const { error } = await _supabase.storage
       .from('question-images')
-      .upload(path, file, { upsert: true, contentType: file.type });
+      .upload(path, resized, { upsert: true, contentType: resized.type });
 
     setImageUploading(false);
 
