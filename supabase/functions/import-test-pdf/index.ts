@@ -9,7 +9,12 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const ANTHROPIC_MODEL = "claude-sonnet-4-6";
-const CLAUDE_TIMEOUT_MS = 90_000;
+// Worst-case safety bound on the streamed Claude call, not the expected
+// completion path — streaming means we keep receiving good output the whole
+// time, so this only fires for a genuinely hung request. Must stay below the
+// reap_stale_import_batches() staleness threshold (6 minutes) so that safety
+// net never preempts a call that's still actively streaming.
+const CLAUDE_TIMEOUT_MS = 240_000;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -99,6 +104,100 @@ function choiceLetter(choiceText: string): string | null {
   return m ? m[1].toUpperCase() : null;
 }
 
+// Streams the Messages API response instead of waiting for one blocking JSON
+// reply. Extracting+solving ~8 questions with full LaTeX worked solutions is
+// a lot of output — streaming means we keep receiving real progress the whole
+// time instead of guessing a single timeout long enough to cover worst case.
+// Raw SSE parsing (no SDK), matching the rest of this function's fetch-based style.
+async function streamExtraction(
+  pdf_base64: string,
+  signal: AbortSignal,
+): Promise<{ stopReason: string; toolInput: { questions?: ExtractedQuestion[] } }> {
+  const resp = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    signal,
+    headers: {
+      "content-type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: ANTHROPIC_MODEL,
+      max_tokens: 16000,
+      stream: true,
+      tools: [EXTRACT_TOOL],
+      tool_choice: { type: "tool", name: "extract_questions" },
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "document",
+              source: { type: "base64", media_type: "application/pdf", data: pdf_base64 },
+            },
+            {
+              type: "text",
+              text:
+                "Extract every multiple-choice question from this math competition test page. " +
+                "Solve each question yourself to determine extracted_answer — show your real work in explanation. " +
+                "Preserve LaTeX-worthy math notation using \\(...\\) inline math. " +
+                "Set needs_image:true only when a diagram is essential and not just decorative.",
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error(`Claude API error ${resp.status}: ${errText}`);
+  }
+  if (!resp.body) throw new Error("Claude API returned no response body for the streamed request");
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let partialJson = "";
+  let stopReason = "end_turn";
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (!line.startsWith("data: ")) continue;
+      const dataStr = line.slice(6).trim();
+      if (!dataStr) continue;
+      let evt: { type?: string; delta?: { type?: string; partial_json?: string; stop_reason?: string } };
+      try {
+        evt = JSON.parse(dataStr);
+      } catch {
+        continue;
+      }
+      if (evt.type === "content_block_delta" && evt.delta?.type === "input_json_delta") {
+        partialJson += evt.delta.partial_json ?? "";
+      } else if (evt.type === "message_delta" && evt.delta?.stop_reason) {
+        stopReason = evt.delta.stop_reason;
+      }
+    }
+  }
+
+  if (!partialJson) throw new Error("Claude did not stream any tool input");
+
+  let toolInput: { questions?: ExtractedQuestion[] };
+  try {
+    toolInput = JSON.parse(partialJson);
+  } catch (e) {
+    throw new Error(`Failed to parse streamed tool input as JSON: ${e instanceof Error ? e.message : String(e)}`);
+  }
+
+  return { stopReason, toolInput };
+}
+
 type SupabaseClient = ReturnType<typeof createClient>;
 
 async function markFailed(db: SupabaseClient, batchId: string, message: string) {
@@ -137,57 +236,12 @@ async function runExtraction(
   const timeoutId = setTimeout(() => controller.abort(), CLAUDE_TIMEOUT_MS);
 
   try {
-    const claudeResp = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      signal: controller.signal,
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY!,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: ANTHROPIC_MODEL,
-        max_tokens: 16000,
-        tools: [EXTRACT_TOOL],
-        tool_choice: { type: "tool", name: "extract_questions" },
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "document",
-                source: { type: "base64", media_type: "application/pdf", data: pdf_base64 },
-              },
-              {
-                type: "text",
-                text:
-                  "Extract every multiple-choice question from this math competition test page. " +
-                  "Solve each question yourself to determine extracted_answer — show your real work in explanation. " +
-                  "Preserve LaTeX-worthy math notation using \\(...\\) inline math. " +
-                  "Set needs_image:true only when a diagram is essential and not just decorative.",
-              },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (!claudeResp.ok) {
-      const errText = await claudeResp.text();
-      throw new Error(`Claude API error ${claudeResp.status}: ${errText}`);
-    }
-
-    const claudeJson = await claudeResp.json();
-    if (claudeJson.stop_reason === "refusal") {
+    const { stopReason, toolInput } = await streamExtraction(pdf_base64, controller.signal);
+    if (stopReason === "refusal") {
       throw new Error("Claude declined to process this PDF (refusal)");
     }
 
-    const toolBlock = (claudeJson.content ?? []).find(
-      (b: { type: string; name?: string }) => b.type === "tool_use" && b.name === "extract_questions",
-    );
-    if (!toolBlock) throw new Error("Claude did not return the expected extraction tool call");
-
-    const questions: ExtractedQuestion[] = toolBlock.input.questions ?? [];
+    const questions: ExtractedQuestion[] = toolInput.questions ?? [];
     if (questions.length === 0) throw new Error("No questions extracted from PDF");
 
     const answerKeyMap = answer_key ? parseAnswerKey(answer_key) : new Map<number, string>();
