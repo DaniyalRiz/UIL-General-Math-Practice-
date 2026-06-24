@@ -9,11 +9,10 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const ANTHROPIC_MODEL = "claude-sonnet-4-6";
-// Each Claude call here does ONE small job (transcribe a page, or solve a
-// single question) instead of one giant call, so a much smaller timeout is
-// plenty -- and worst case (transcription + the slowest parallel solve call)
-// stays comfortably under Supabase's free-tier 150s worker wall-clock limit.
-const CALL_TIMEOUT_MS = 60_000;
+// TEMPORARY diagnostic value -- raised so we can see how long each call
+// actually takes (via the timing logs in streamToolCall) instead of getting
+// cut off again. Will be tuned back down once we have real numbers.
+const CALL_TIMEOUT_MS = 140_000;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -123,7 +122,10 @@ function choiceLetter(choiceText: string): string | null {
 async function streamToolCall(
   body: Record<string, unknown>,
   signal: AbortSignal,
+  label: string,
 ): Promise<{ stopReason: string; toolInput: Record<string, unknown> }> {
+  const t0 = Date.now();
+  console.log(`[${label}] sending request`);
   const resp = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     signal,
@@ -134,6 +136,7 @@ async function streamToolCall(
     },
     body: JSON.stringify(body),
   });
+  console.log(`[${label}] got response headers after ${Date.now() - t0}ms, status=${resp.status}`);
 
   if (!resp.ok) {
     const errText = await resp.text();
@@ -146,10 +149,17 @@ async function streamToolCall(
   let buffer = "";
   let partialJson = "";
   let stopReason = "end_turn";
+  let chunkCount = 0;
+  let firstChunkAt = -1;
 
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
+    chunkCount++;
+    if (firstChunkAt === -1) {
+      firstChunkAt = Date.now() - t0;
+      console.log(`[${label}] first chunk after ${firstChunkAt}ms`);
+    }
     buffer += decoder.decode(value, { stream: true });
     const lines = buffer.split("\n");
     buffer = lines.pop() ?? "";
@@ -171,6 +181,7 @@ async function streamToolCall(
       }
     }
   }
+  console.log(`[${label}] stream done after ${Date.now() - t0}ms, ${chunkCount} chunks, ${partialJson.length} json chars`);
 
   if (!partialJson) throw new Error("Claude did not stream any tool input");
 
@@ -225,6 +236,7 @@ async function extractBoundaries(pdf_base64: string): Promise<QuestionBoundary[]
         ],
       },
       signal,
+      "boundaries",
     )
   );
 
@@ -265,6 +277,7 @@ async function solveQuestion(
         messages: [{ role: "user", content }],
       },
       signal,
+      `solve#${q.original_question_number}`,
     )
   );
 
