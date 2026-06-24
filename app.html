@@ -2515,54 +2515,57 @@ function ReviewImportsPanel({ authUser }) {
     _publishError: '',
   });
 
-  const loadDraftsFromBatch = async (batchId) => {
-    const { data, error } = await _supabase.from('draft_questions').select('*').eq('batch_id', batchId);
-    if (error) {
-      setPdfImportMessage('Extraction succeeded but loading the drafts failed: ' + error.message);
-      return;
-    }
-    setDraftRows(prev => [...prev, ...(data || []).map(draftQuestionRowToLocal)]);
-  };
-
-  // Polls import_batches until the background extraction (kicked off by the
-  // Edge Function via EdgeRuntime.waitUntil) reaches a terminal status, instead
-  // of holding one long request open — that's what was timing out before.
+  // Polls import_batches AND draft_questions until the background extraction
+  // (kicked off by the Edge Function via EdgeRuntime.waitUntil, which now
+  // solves each question independently and inserts it the moment it's ready)
+  // reaches a terminal status. Newly-inserted rows are merged in on every
+  // tick — not just at the end — so questions appear live as each one lands,
+  // instead of the page looking frozen until everything finishes.
   const pollImportBatch = (batchId) => {
     clearInterval(pdfPollRef.current);
+    const seenIds = new Set();
     pdfPollRef.current = setInterval(async () => {
       // Cheap, idempotent safety net: self-heals any batch that got orphaned by
       // a hard process kill instead of a normal caught error.
       _supabase.rpc('reap_stale_import_batches').catch(() => {});
 
-      const { data, error } = await _supabase
-        .from('import_batches')
-        .select('status, error_message, questions_extracted')
-        .eq('id', batchId)
-        .single();
+      const [{ data: batch, error: batchError }, { data: drafts, error: draftsError }] = await Promise.all([
+        _supabase.from('import_batches').select('status, error_message, questions_extracted, questions_total').eq('id', batchId).single(),
+        _supabase.from('draft_questions').select('*').eq('batch_id', batchId),
+      ]);
 
-      if (error) {
+      if (batchError) {
         clearInterval(pdfPollRef.current);
         setPdfImporting(false);
-        setPdfImportMessage('Lost track of the import job: ' + error.message);
+        setPdfImportMessage('Lost track of the import job: ' + batchError.message);
         return;
       }
-      if (data.status === 'queued' || data.status === 'processing') {
-        setPdfImportMessage(`Status: ${data.status}… this page updates automatically.`);
+
+      if (!draftsError && drafts) {
+        const newRows = drafts.filter(r => !seenIds.has(r.id));
+        if (newRows.length) {
+          newRows.forEach(r => seenIds.add(r.id));
+          setDraftRows(prev => [...prev, ...newRows.map(draftQuestionRowToLocal)]);
+        }
+      }
+
+      if (batch.status === 'queued' || batch.status === 'processing') {
+        const progress = batch.questions_total ? ` (${seenIds.size} of ${batch.questions_total} extracted so far)` : '';
+        setPdfImportMessage(`Status: ${batch.status}…${progress} this page updates automatically.`);
         return;
       }
 
       clearInterval(pdfPollRef.current);
       setPdfImporting(false);
 
-      if (data.status === 'failed') {
-        setPdfImportMessage('Extraction failed: ' + (data.error_message || 'Unknown error.'));
+      if (batch.status === 'failed') {
+        setPdfImportMessage('Extraction failed: ' + (batch.error_message || 'Unknown error.'));
         return;
       }
 
-      loadDraftsFromBatch(batchId);
       setPdfImportMessage(
-        `Extracted ${data.questions_extracted} question(s)` +
-        (data.status === 'needs_attention' ? ' — some answer key mismatches found, check the verification badges below.' : ' — all answers matched the key.')
+        `Extracted ${batch.questions_extracted ?? seenIds.size} question(s)` +
+        (batch.status === 'needs_attention' ? ' — some need review (answer mismatch or a solve failure), check the badges below.' : ' — all answers matched the key.')
       );
     }, 4000);
   };
