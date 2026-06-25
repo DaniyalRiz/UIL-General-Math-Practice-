@@ -3570,7 +3570,10 @@ function SettingsPage({ authUser }) {
   const hasPasswordAuth = providers.includes('email');
   const avatarColor = avatarColorFor(authUser);
 
-  const [avatarUrl, setAvatarUrl] = useState(authUser?.user_metadata?.avatar_url || null);
+  // Stored as custom_avatar_url, not avatar_url -- Google OAuth sign-ins make Supabase
+  // re-populate user_metadata.avatar_url from the Google profile photo on every sign-in,
+  // which would silently overwrite a custom upload stored under that key.
+  const [avatarUrl, setAvatarUrl] = useState(authUser?.user_metadata?.custom_avatar_url || null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarMsg, setAvatarMsg] = useState('');
 
@@ -3618,7 +3621,7 @@ function SettingsPage({ authUser }) {
     // wouldn't otherwise change and the browser could keep showing the old image.
     const bustedUrl = `${pub.publicUrl}?t=${Date.now()}`;
 
-    const { error: updateErr } = await _supabase.auth.updateUser({ data: { avatar_url: bustedUrl } });
+    const { error: updateErr } = await _supabase.auth.updateUser({ data: { custom_avatar_url: bustedUrl } });
     setAvatarUploading(false);
     if (updateErr) {
       setAvatarMsg(updateErr.message || 'Could not save profile picture.');
@@ -3638,7 +3641,7 @@ function SettingsPage({ authUser }) {
       await _supabase.storage.from('avatars').remove(files.map(f => `${authUser.id}/${f.name}`));
     }
 
-    const { error: updateErr } = await _supabase.auth.updateUser({ data: { avatar_url: null } });
+    const { error: updateErr } = await _supabase.auth.updateUser({ data: { custom_avatar_url: null } });
     setAvatarUploading(false);
     if (updateErr) {
       setAvatarMsg(updateErr.message || 'Could not remove profile picture.');
@@ -3767,7 +3770,7 @@ function SettingsPage({ authUser }) {
 
 function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab, setTab, recommendedMode, setRecommendedMode, bookmarksCount, setPage, navigateTab }) {
   const [open, setOpen] = useState(false);
-  const avatarUrl = authUser?.user_metadata?.avatar_url || null;
+  const avatarUrl = authUser?.user_metadata?.custom_avatar_url || null;
   const menuRef = useRef(null);
   const avatarColor = avatarColorFor(authUser);
 
@@ -3785,7 +3788,8 @@ function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab,
 
   return (
     <div className="relative" ref={menuRef}>
-      <button onClick={() => setOpen(o => !o)} title="Account menu"
+      <button onClick={() => tab === 'settings' ? navigateTab('problems') : setOpen(o => !o)}
+        title={tab === 'settings' ? 'Back to Problems' : 'Account menu'}
         className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs hover:border-blue-400 transition-colors shrink-0 ${avatarUrl ? '' : avatarColor.bg + ' ' + avatarColor.text}`}>
         {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <span>{initialsFor(authUser)}</span>}
       </button>
