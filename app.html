@@ -555,7 +555,7 @@ function ProblemSidebarSections({ stat, notes, authUser, noteText, setNoteText, 
       )}
 
       {/* Notes */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 overflow-hidden">
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60">
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
           <p className="text-sm font-bold text-slate-700 dark:text-slate-200">My Notes</p>
           {!authUser && <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">Sign in to save notes</span>}
@@ -639,7 +639,7 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
   const timer = useTimer();
   const startRef = useRef(Date.now());
 
-  // Load notes for this question when it opens
+  // Reset per-question interaction state whenever the question itself changes.
   useEffect(() => {
     setPending(null);
     setSelected(null);
@@ -652,32 +652,32 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
     setSubmitting(false);
     timer.reset();
     timer.start(); startRef.current = Date.now();
-
-    // Create a one-use backend attempt session for this opened question.
-    if (authUser) {
-      _supabase.rpc("start_question_attempt", { p_question_id: q.id })
-        .then(({ data, error }) => {
-          if (error) {
-            console.warn("start_question_attempt error:", error.message);
-            setSubmitError(error.message);
-          } else {
-            setAttemptSessionId(data);
-          }
-        });
-    }
-
-    // Fetch notes from Supabase
-    if (authUser) {
-      _supabase.from('notes')
-        .select('*')
-        .eq('user_id', authUser.id)
-        .eq('question_id', q.id)
-        .order('created_at', { ascending: true })
-        .then(({ data }) => setNotes(data || []));
-    } else {
-      setNotes([]);
-    }
   }, [q.id]);
+
+  // Start the attempt session and fetch notes for this question. Depends on
+  // authUser as well as q.id -- on a slow session restore, authUser can
+  // resolve after this view already mounted, and without this dependency
+  // notes/the attempt session would silently never load for that question.
+  useEffect(() => {
+    if (!authUser) { setNotes([]); return; }
+
+    _supabase.rpc("start_question_attempt", { p_question_id: q.id })
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn("start_question_attempt error:", error.message);
+          setSubmitError(error.message);
+        } else {
+          setAttemptSessionId(data);
+        }
+      });
+
+    _supabase.from('notes')
+      .select('*')
+      .eq('user_id', authUser.id)
+      .eq('question_id', q.id)
+      .order('created_at', { ascending: true })
+      .then(({ data }) => setNotes(data || []));
+  }, [q.id, authUser?.id]);
 
   const saveNote = async () => {
     if (!noteText.trim() || !authUser) return;
