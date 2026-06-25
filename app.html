@@ -3565,7 +3565,7 @@ function AdminQuestionManager({ authUser }) {
   );
 }
 
-function SettingsModal({ authUser, onClose, onAvatarChange }) {
+function SettingsPage({ authUser }) {
   const providers = authUser?.app_metadata?.providers || [];
   const hasPasswordAuth = providers.includes('email');
   const avatarColor = avatarColorFor(authUser);
@@ -3626,7 +3626,6 @@ function SettingsModal({ authUser, onClose, onAvatarChange }) {
     }
     setAvatarUrl(bustedUrl);
     setAvatarMsg('');
-    onAvatarChange?.(bustedUrl);
     showToast('Profile picture updated.');
   };
 
@@ -3646,7 +3645,6 @@ function SettingsModal({ authUser, onClose, onAvatarChange }) {
       return;
     }
     setAvatarUrl(null);
-    onAvatarChange?.(null);
     showToast('Profile picture removed.');
   };
 
@@ -3686,15 +3684,13 @@ function SettingsModal({ authUser, onClose, onAvatarChange }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
-      <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 max-h-[90vh] overflow-y-auto"
-        onClick={e => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 mb-5">
-          <h2 className="font-display text-xl font-black text-slate-900 dark:text-white">Settings</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xl">×</button>
-        </div>
+    <div className="max-w-xl mx-auto px-4 py-8">
+      <div className="mb-6">
+        <h1 className="font-display text-4xl font-black tracking-tight text-slate-900 dark:text-white mb-1">Settings</h1>
+        <p className="text-slate-400 dark:text-slate-600 text-xs mt-1">← Click <span className="font-semibold text-slate-500 dark:text-slate-400">Problems</span> in the nav to return to practicing</p>
+      </div>
 
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5">
         {/* Profile picture */}
         <div className="mb-6">
           <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Profile picture</label>
@@ -3769,10 +3765,9 @@ function SettingsModal({ authUser, onClose, onAvatarChange }) {
   );
 }
 
-function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab, setTab, recommendedMode, setRecommendedMode, bookmarksCount, setPage }) {
+function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab, setTab, recommendedMode, setRecommendedMode, bookmarksCount, setPage, navigateTab }) {
   const [open, setOpen] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState(authUser?.user_metadata?.avatar_url || null);
+  const avatarUrl = authUser?.user_metadata?.avatar_url || null;
   const menuRef = useRef(null);
   const avatarColor = avatarColorFor(authUser);
 
@@ -3827,8 +3822,8 @@ function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab,
             <span>Appearance</span>
             <span className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">{dark ? <SunIcon/> : <MoonIcon/>}{dark ? 'Dark' : 'Light'}</span>
           </button>
-          <button onClick={() => { setOpen(false); setShowSettings(true); }}
-            className="w-full flex items-center px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
+          <button onClick={() => { setOpen(false); navigateTab('settings'); }}
+            className={`w-full flex items-center px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 ${tab==="settings" ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-slate-700 dark:text-slate-300"}`}>
             Settings
           </button>
 
@@ -3839,10 +3834,6 @@ function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab,
             Sign Out
           </button>
         </div>
-      )}
-
-      {showSettings && (
-        <SettingsModal authUser={authUser} onClose={() => setShowSettings(false)} onAvatarChange={setAvatarUrl} />
       )}
     </div>
   );
@@ -4231,7 +4222,7 @@ function App() {
               <ProfileMenu authUser={authUser} dark={dark} toggleTheme={toggleTheme} signOut={signOut}
                 view={view} setView={setView} tab={tab} setTab={setTab}
                 recommendedMode={recommendedMode} setRecommendedMode={setRecommendedMode}
-                bookmarksCount={bookmarks.length} setPage={setPage} />
+                bookmarksCount={bookmarks.length} setPage={setPage} navigateTab={navigateTab} />
             ) : (
               <a href="./index.html"
                 className="text-xs px-2.5 sm:px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors whitespace-nowrap">
@@ -4260,6 +4251,8 @@ function App() {
         }} />
       ) : tab === 'admin' ? (
         <AdminQuestionManager authUser={authUser} />
+      ) : tab === 'settings' ? (
+        <SettingsPage authUser={authUser} />
       ) : view === "recommended" ? (
         <div className="max-w-6xl mx-auto px-4 py-8">
           <div className="mb-6">
