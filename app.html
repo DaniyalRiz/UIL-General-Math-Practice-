@@ -90,6 +90,29 @@ const plainText = (s) => String(s||"")
   .replace(/\\\(([\s\S]*?)\\\)/g, (_,m)=>m.trim())
   .replace(/\s+/g," ").trim();
 
+// Single-letter avatar fallback when no profile picture is set
+const initialsFor = (user) => {
+  const name = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'U';
+  return name.trim().charAt(0).toUpperCase();
+};
+
+// Deterministic background color for the initials fallback -- same user always gets the
+// same color, picked from the existing topic/difficulty accent palette (no new hues).
+const AVATAR_COLORS = [
+  { bg: 'bg-blue-100 dark:bg-blue-500/20', text: 'text-blue-700 dark:text-blue-400' },
+  { bg: 'bg-violet-100 dark:bg-violet-500/20', text: 'text-violet-700 dark:text-violet-400' },
+  { bg: 'bg-sky-100 dark:bg-sky-500/20', text: 'text-sky-700 dark:text-sky-400' },
+  { bg: 'bg-emerald-100 dark:bg-emerald-500/20', text: 'text-emerald-700 dark:text-emerald-400' },
+  { bg: 'bg-amber-100 dark:bg-amber-500/20', text: 'text-amber-700 dark:text-amber-400' },
+  { bg: 'bg-rose-100 dark:bg-rose-500/20', text: 'text-rose-700 dark:text-rose-400' },
+];
+const avatarColorFor = (user) => {
+  const key = String(user?.id || user?.email || 'u');
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+};
+
 // ── Math rendering ────────────────────────────────────────────────────────────
 // Renders text containing LaTeX. Use $...$ for inline math and $$...$$ for display.
 // Falls back to plain text if KaTeX hasn't loaded.
@@ -2367,6 +2390,10 @@ const ALLOWED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 const MAX_IMAGE_DIMENSION = 1280; // longest side, in px, after resize
 
+const ALLOWED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const MAX_AVATAR_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_AVATAR_DIMENSION = 320; // avatars only ever render small
+
 // Downscale an image to a sane max dimension before upload. Question diagrams only ever
 // display at a few hundred px wide in the UI, so admin-uploaded screenshots/photos (which
 // can easily be several thousand px and multiple MB) get shrunk client-side, never upscaled.
@@ -2401,6 +2428,32 @@ async function resizeImageForUpload(file, { maxDim = MAX_IMAGE_DIMENSION, jpegQu
   const ext = outputType === 'image/png' ? 'png' : 'jpg';
   const newName = file.name.replace(/\.[^.]+$/, '') + `-resized.${ext}`;
   return new File([blob], newName, { type: outputType });
+}
+
+// Avatars are always a small square photo, never need transparency or crisp vector lines,
+// so unlike resizeImageForUpload above this always crops to a centered square and re-encodes
+// as JPEG -- gives a small, predictable file size regardless of the source image's shape.
+async function cropAndResizeAvatar(file, maxDim = MAX_AVATAR_DIMENSION) {
+  let bitmap;
+  try {
+    bitmap = await createImageBitmap(file);
+  } catch (e) {
+    return file; // unreadable as an image — let the normal upload/validation handle it
+  }
+
+  const side = Math.min(bitmap.width, bitmap.height);
+  const sx = (bitmap.width - side) / 2;
+  const sy = (bitmap.height - side) / 2;
+  const outSide = Math.min(side, maxDim);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = outSide;
+  canvas.height = outSide;
+  canvas.getContext('2d').drawImage(bitmap, sx, sy, side, side, 0, 0, outSide, outSide);
+
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.85));
+  if (!blob) return file;
+  return new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
 }
 
 // ── Review Imports: load a locally-extracted draft JSON (questions pulled from a
@@ -3512,6 +3565,289 @@ function AdminQuestionManager({ authUser }) {
   );
 }
 
+function SettingsModal({ authUser, onClose, onAvatarChange }) {
+  const providers = authUser?.app_metadata?.providers || [];
+  const hasPasswordAuth = providers.includes('email');
+  const avatarColor = avatarColorFor(authUser);
+
+  const [avatarUrl, setAvatarUrl] = useState(authUser?.user_metadata?.avatar_url || null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarMsg, setAvatarMsg] = useState('');
+
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmPw, setConfirmPw] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwMsg, setPwMsg] = useState('');
+  const [pwConfirming, setPwConfirming] = useState(false);
+
+  const [toast, setToast] = useState('');
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(''), 2500);
+  };
+
+  const uploadAvatar = async (file) => {
+    if (!file) return;
+    if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
+      setAvatarMsg('Please choose a PNG, JPEG, or WEBP image.');
+      return;
+    }
+    if (file.size > MAX_AVATAR_BYTES) {
+      setAvatarMsg('Image is too large. Please use a file under 5 MB.');
+      return;
+    }
+    setAvatarUploading(true);
+    setAvatarMsg('');
+
+    const cropped = await cropAndResizeAvatar(file);
+    const path = `${authUser.id}/avatar.jpg`;
+
+    const { error: uploadErr } = await _supabase.storage
+      .from('avatars')
+      .upload(path, cropped, { upsert: true, contentType: cropped.type });
+
+    if (uploadErr) {
+      setAvatarUploading(false);
+      setAvatarMsg(uploadErr.message || 'Upload failed.');
+      return;
+    }
+
+    const { data: pub } = _supabase.storage.from('avatars').getPublicUrl(path);
+    // Cache-bust: the filename never changes between uploads, so the URL string
+    // wouldn't otherwise change and the browser could keep showing the old image.
+    const bustedUrl = `${pub.publicUrl}?t=${Date.now()}`;
+
+    const { error: updateErr } = await _supabase.auth.updateUser({ data: { avatar_url: bustedUrl } });
+    setAvatarUploading(false);
+    if (updateErr) {
+      setAvatarMsg(updateErr.message || 'Could not save profile picture.');
+      return;
+    }
+    setAvatarUrl(bustedUrl);
+    setAvatarMsg('');
+    onAvatarChange?.(bustedUrl);
+    showToast('Profile picture updated.');
+  };
+
+  const removeAvatar = async () => {
+    setAvatarUploading(true);
+    setAvatarMsg('');
+
+    const { data: files } = await _supabase.storage.from('avatars').list(authUser.id);
+    if (files && files.length) {
+      await _supabase.storage.from('avatars').remove(files.map(f => `${authUser.id}/${f.name}`));
+    }
+
+    const { error: updateErr } = await _supabase.auth.updateUser({ data: { avatar_url: null } });
+    setAvatarUploading(false);
+    if (updateErr) {
+      setAvatarMsg(updateErr.message || 'Could not remove profile picture.');
+      return;
+    }
+    setAvatarUrl(null);
+    onAvatarChange?.(null);
+    showToast('Profile picture removed.');
+  };
+
+  const requestPasswordChange = () => {
+    setPwMsg('');
+    if (!currentPw || !newPw || !confirmPw) { setPwMsg('Fill in all three fields.'); return; }
+    if (newPw !== confirmPw) { setPwMsg('New passwords do not match.'); return; }
+    if (newPw.length < 8) { setPwMsg('New password must be at least 8 characters.'); return; }
+    setPwConfirming(true);
+  };
+
+  const confirmPasswordChange = async () => {
+    setPwConfirming(false);
+    setPwSaving(true);
+    // Re-verify the current password is actually correct before changing anything --
+    // Supabase has no dedicated "verify password" call, so re-authenticating against
+    // the live session's email is the standard way to do this safely.
+    const { error: verifyErr } = await _supabase.auth.signInWithPassword({
+      email: authUser.email,
+      password: currentPw,
+    });
+    if (verifyErr) {
+      setPwSaving(false);
+      setPwMsg('Current password is incorrect.');
+      return;
+    }
+
+    const { error: updateErr } = await _supabase.auth.updateUser({ password: newPw });
+    setPwSaving(false);
+    if (updateErr) {
+      setPwMsg(updateErr.message || 'Could not update password.');
+      return;
+    }
+    setPwMsg('');
+    setCurrentPw(''); setNewPw(''); setConfirmPw('');
+    showToast('Password updated successfully.');
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+      <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 max-h-[90vh] overflow-y-auto"
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 mb-5">
+          <h2 className="font-display text-xl font-black text-slate-900 dark:text-white">Settings</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xl">×</button>
+        </div>
+
+        {/* Profile picture */}
+        <div className="mb-6">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Profile picture</label>
+          <div className="flex items-center gap-4">
+            <div className={`w-16 h-16 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xl shrink-0 ${avatarUrl ? '' : avatarColor.bg + ' ' + avatarColor.text}`}>
+              {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <span>{initialsFor(authUser)}</span>}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="px-3 py-2 rounded-lg text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer text-center">
+                {avatarUploading ? 'Uploading…' : 'Upload new photo'}
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" disabled={avatarUploading}
+                  onChange={e => uploadAvatar(e.target.files?.[0])} />
+              </label>
+              {avatarUrl && (
+                <button onClick={removeAvatar} disabled={avatarUploading}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+                  Remove photo
+                </button>
+              )}
+            </div>
+          </div>
+          {avatarMsg && <p className="mt-2 text-xs text-rose-600 dark:text-rose-400">{avatarMsg}</p>}
+        </div>
+
+        <div className="border-t border-slate-100 dark:border-slate-800 pt-5">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">Change password</label>
+          {!hasPasswordAuth ? (
+            <p className="text-sm text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2.5">
+              You signed in with Google, so there's no password to change here. Manage your password through your Google account.
+            </p>
+          ) : (
+            <div className="space-y-2.5">
+              <input type="password" value={currentPw} onChange={e=>setCurrentPw(e.target.value)} placeholder="Current password" disabled={pwConfirming}
+                className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-60" />
+              <input type="password" value={newPw} onChange={e=>setNewPw(e.target.value)} placeholder="New password" disabled={pwConfirming}
+                className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-60" />
+              <input type="password" value={confirmPw} onChange={e=>setConfirmPw(e.target.value)} placeholder="Confirm new password" disabled={pwConfirming}
+                className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:opacity-60" />
+              {pwMsg && <p className="text-xs text-rose-600 dark:text-rose-400">{pwMsg}</p>}
+
+              {pwConfirming ? (
+                <div className="rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-3">
+                  <p className="text-xs text-amber-800 dark:text-amber-300 mb-2">Change your password now? You'll need the new password next time you sign in.</p>
+                  <div className="flex gap-2">
+                    <button onClick={() => setPwConfirming(false)}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+                      Cancel
+                    </button>
+                    <button onClick={confirmPasswordChange} disabled={pwSaving}
+                      className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white">
+                      {pwSaving ? 'Updating…' : 'Yes, change it'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button onClick={requestPasswordChange}
+                  className="w-full py-2 rounded-lg text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white">
+                  Update Password
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-[70] bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 text-sm font-medium px-4 py-2.5 rounded-lg shadow-lg">
+          {toast}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab, setTab, recommendedMode, setRecommendedMode, bookmarksCount, setPage }) {
+  const [open, setOpen] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(authUser?.user_metadata?.avatar_url || null);
+  const menuRef = useRef(null);
+  const avatarColor = avatarColorFor(authUser);
+
+  useEffect(() => {
+    if (!open) return;
+    const handlePointer = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false); };
+    const handleKey = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', handlePointer);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handlePointer);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="relative" ref={menuRef}>
+      <button onClick={() => setOpen(o => !o)} title="Account menu"
+        className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full overflow-hidden border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs hover:border-blue-400 transition-colors shrink-0 ${avatarUrl ? '' : avatarColor.bg + ' ' + avatarColor.text}`}>
+        {avatarUrl ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" /> : <span>{initialsFor(authUser)}</span>}
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 w-56 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg py-1.5 z-40 text-sm">
+          <button onClick={() => {
+              const next = view !== "recommended" || tab !== "problems";
+              setTab("problems");
+              setRecommendedMode(next);
+              setView(next ? "recommended" : "list");
+              setPage(1);
+              setOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 ${view==="recommended" ? "text-blue-600 dark:text-blue-400 font-semibold" : "text-slate-700 dark:text-slate-300"}`}>
+            Recommended
+          </button>
+          <button onClick={() => {
+              setTab("problems");
+              setRecommendedMode(false);
+              setView(v=>(v==="review" && tab==="problems")?"list":"review");
+              setPage(1);
+              setOpen(false);
+            }}
+            className={`w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 ${view==="review" ? "text-amber-600 dark:text-amber-400 font-semibold" : "text-slate-700 dark:text-slate-300"}`}>
+            <span>Review Later</span>
+            {bookmarksCount > 0 && <span className="text-xs font-bold px-1.5 py-0.5 rounded-full bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">{bookmarksCount}</span>}
+          </button>
+
+          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+          <button onClick={toggleTheme}
+            className="w-full flex items-center justify-between px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
+            <span>Appearance</span>
+            <span className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500">{dark ? <SunIcon/> : <MoonIcon/>}{dark ? 'Dark' : 'Light'}</span>
+          </button>
+          <button onClick={() => { setOpen(false); setShowSettings(true); }}
+            className="w-full flex items-center px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300">
+            Settings
+          </button>
+
+          <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+
+          <button onClick={() => { setOpen(false); signOut(); }}
+            className="w-full flex items-center px-3.5 py-2 text-left hover:bg-slate-100 dark:hover:bg-slate-800 text-rose-600 dark:text-rose-400">
+            Sign Out
+          </button>
+        </div>
+      )}
+
+      {showSettings && (
+        <SettingsModal authUser={authUser} onClose={() => setShowSettings(false)} onAvatarChange={setAvatarUrl} />
+      )}
+    </div>
+  );
+}
+
 function App() {
   const [dark, toggleTheme] = useTheme();
   const [authUser, setAuthUser] = useState(null);
@@ -3891,41 +4227,11 @@ function App() {
           </div>
           {/* Right: actions */}
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            <button onClick={()=>{ 
-                const next = view !== "recommended" || tab !== "problems";
-                setTab("problems");
-                setRecommendedMode(next);
-                setView(next ? "recommended" : "list");
-                setPage(1);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold border transition-all whitespace-nowrap shrink-0
-                ${view==="recommended"
-                  ? "bg-blue-600 border-blue-600 text-white"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400"}`}>
-              <span>Recommended</span>
-            </button>
-            <button onClick={()=>{ 
-                setTab("problems");
-                setRecommendedMode(false); 
-                setView(v=>(v==="review" && tab==="problems")?"list":"review"); 
-                setPage(1);
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold border transition-all whitespace-nowrap shrink-0
-                ${view==="review"
-                  ? "bg-amber-500 border-amber-500 text-white"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400"}`}>
-              <span>Review Later</span>{bookmarks.length>0 && <span className={`text-xs font-bold px-1 py-0.5 rounded-full ${view==="review"?"bg-amber-400":"bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"}`}>{bookmarks.length}</span>}
-            </button>
-            <button onClick={toggleTheme} title="Toggle theme"
-              className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
-              {dark ? <SunIcon/> : <MoonIcon/>}
-            </button>
-            {/* Auth pill */}
             {authUser ? (
-              <button onClick={signOut}
-                className="text-xs px-2 sm:px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium whitespace-nowrap">
-                Sign Out
-              </button>
+              <ProfileMenu authUser={authUser} dark={dark} toggleTheme={toggleTheme} signOut={signOut}
+                view={view} setView={setView} tab={tab} setTab={setTab}
+                recommendedMode={recommendedMode} setRecommendedMode={setRecommendedMode}
+                bookmarksCount={bookmarks.length} setPage={setPage} />
             ) : (
               <a href="./index.html"
                 className="text-xs px-2.5 sm:px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold transition-colors whitespace-nowrap">
