@@ -302,6 +302,12 @@ async function runTranscription(db: SupabaseClient, batchId: string, pdf_base64:
   const pageCount = pagePdfs.length;
   const pageIndexes = Array.from({ length: pageCount }, (_, i) => i);
 
+  // TEMPORARY diagnostic: confirm whether per-page splitting actually shrank
+  // each page's byte size, or whether pdf-lib re-embedded a large shared
+  // font/resource into every single-page copy (a known pdf-lib behavior),
+  // which would explain still hitting the 30k-tokens/minute rate limit.
+  const pageSizesKB = pagePdfs.map((p, i) => `p${i + 1}:${Math.round((p.length * 0.75) / 1024)}KB`).join(", ");
+
   const pageResults = await runWithConcurrency(
     pageIndexes,
     4,
@@ -327,9 +333,10 @@ async function runTranscription(db: SupabaseClient, batchId: string, pdf_base64:
     await markFailed(
       db,
       batchId,
-      pageErrors.length > 0
-        ? `No questions transcribed from any page. Per-page errors: ${pageErrors.join(" | ")}`
-        : "No multiple-choice questions found anywhere in this PDF.",
+      `[page sizes: ${pageSizesKB}] ` +
+        (pageErrors.length > 0
+          ? `No questions transcribed from any page. Per-page errors: ${pageErrors.join(" | ")}`
+          : "No multiple-choice questions found anywhere in this PDF."),
     );
     return;
   }
@@ -340,9 +347,9 @@ async function runTranscription(db: SupabaseClient, batchId: string, pdf_base64:
       status: "transcribed",
       boundaries_json: boundaries,
       questions_total: boundaries.length,
-      error_message: pageErrors.length > 0
-        ? `${pageErrors.length} of ${pageCount} page(s) failed to transcribe and are missing from this import: ${pageErrors.join(" | ")}`
-        : null,
+      error_message: `[page sizes: ${pageSizesKB}]` + (pageErrors.length > 0
+        ? ` ${pageErrors.length} of ${pageCount} page(s) failed to transcribe and are missing from this import: ${pageErrors.join(" | ")}`
+        : ""),
     })
     .eq("id", batchId);
 }
