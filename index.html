@@ -14,10 +14,9 @@
 <style>
   body { font-family: 'Inter', system-ui, sans-serif; }
   .font-display { font-family: 'Fraunces', Georgia, serif; }
-  .hero-gradient { background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 50%, #312e81 100%); }
+  .hero-gradient { background: #1e3a5f; }
   .card-hover { transition: transform 0.2s, box-shadow 0.2s; }
   .card-hover:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
-  .stat-card { background: rgba(255,255,255,0.08); backdrop-filter: blur(10px); }
   @keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
   .fade-up { animation: fadeUp 0.7s ease forwards; }
   .fade-up-2 { animation: fadeUp 0.7s 0.15s ease both; }
@@ -166,10 +165,6 @@
      HERO
 ═══════════════════════════════════════════════════════ -->
 <section class="hero-gradient min-h-screen flex flex-col items-center justify-center text-center px-6 pt-16 pb-24 relative overflow-hidden">
-  <!-- decorative blur circles -->
-  <div class="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl pointer-events-none"></div>
-  <div class="absolute bottom-10 right-10 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
-
   <div class="relative max-w-4xl mx-auto">
     <!-- Trophy badge -->
     <div class="fade-up inline-flex items-center gap-2 bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full mb-8">
@@ -198,17 +193,17 @@
     </div>
 
     <!-- Stats row -->
-    <div class="mt-16 grid grid-cols-3 gap-4 max-w-lg mx-auto">
-      <div class="stat-card rounded-2xl p-4 text-center">
-        <p class="text-3xl font-black text-white">91</p>
+    <div class="mt-16 flex items-center justify-center divide-x divide-white/10 max-w-lg mx-auto">
+      <div class="flex-1 text-center px-4">
+        <p id="stat-problems" class="text-3xl font-black text-white">&mdash;</p>
         <p class="text-blue-300 text-xs font-semibold mt-1">Problems</p>
       </div>
-      <div class="stat-card rounded-2xl p-4 text-center">
-        <p class="text-3xl font-black text-white">5</p>
+      <div class="flex-1 text-center px-4">
+        <p id="stat-topics" class="text-3xl font-black text-white">&mdash;</p>
         <p class="text-blue-300 text-xs font-semibold mt-1">Topics</p>
       </div>
-      <div class="stat-card rounded-2xl p-4 text-center">
-        <p class="text-3xl font-black text-white">4</p>
+      <div class="flex-1 text-center px-4">
+        <p id="stat-tests" class="text-3xl font-black text-white">&mdash;</p>
         <p class="text-blue-300 text-xs font-semibold mt-1">Real Tests</p>
       </div>
     </div>
@@ -448,6 +443,16 @@ document.addEventListener('DOMContentLoaded', function () {
   // Check existing session on load
   supabase.auth.getSession().then(({ data: { session } }) => {
     setNavState(session?.user ?? null);
+  });
+
+  // ─── LIVE STATS (Problems / Topics / Real Tests) ──────────────────────────
+  supabase.from('public_questions').select('topic, source').limit(5000).then(({ data, error }) => {
+    if (error || !data) return;
+    const topics = new Set(data.map(q => q.topic).filter(Boolean));
+    const tests = new Set(data.map(q => q.source).filter(Boolean));
+    document.getElementById('stat-problems').textContent = data.length;
+    document.getElementById('stat-topics').textContent = topics.size;
+    document.getElementById('stat-tests').textContent = tests.size;
   });
 
   // Close modal on backdrop click
