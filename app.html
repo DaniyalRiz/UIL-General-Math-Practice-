@@ -557,7 +557,6 @@ function ProblemSidebarSections({ stat, notes, authUser, noteText, setNoteText, 
       {/* Notes */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 overflow-hidden">
         <div className="px-4 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center gap-2">
-          <span className="text-base">📝</span>
           <p className="text-sm font-bold text-slate-700 dark:text-slate-200">My Notes</p>
           {!authUser && <span className="ml-auto text-xs text-slate-400 dark:text-slate-500">Sign in to save notes</span>}
         </div>
@@ -857,7 +856,7 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
               <DiffPill d={q.difficulty} />
               {q.source && (
                 <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-semibold border border-slate-200 dark:border-slate-700">
-                  📄 {sourceDisplay(q)}
+                  {sourceDisplay(q)}
                 </span>
               )}
               {q.date_added && (
@@ -882,7 +881,6 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
               </div>
               <button onClick={()=>setShowReportIssue(true)} title="Report a question issue"
                 className="flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-semibold border bg-slate-50 border-slate-200 text-slate-600 hover:border-rose-300 hover:text-rose-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-rose-500 dark:hover:text-rose-400 transition-all">
-                <span>⚑</span>
                 <span className="hidden sm:inline">Report</span>
               </button>
               <button onClick={onToggleBookmark} title={isBookmarked ? "Remove bookmark" : "Bookmark for review"}
@@ -890,7 +888,6 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
                   ${isBookmarked
                     ? "bg-amber-50 border-amber-300 text-amber-700 dark:bg-amber-500/15 dark:border-amber-500/40 dark:text-amber-400"
                     : "bg-slate-50 border-slate-200 text-slate-600 hover:border-amber-300 hover:text-amber-600 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300 dark:hover:border-amber-500 dark:hover:text-amber-400"}`}>
-                <span>🔖</span>
                 <span>{isBookmarked ? "Saved" : "Review Later"}</span>
               </button>
               <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xl leading-none transition-colors">×</button>
@@ -1091,7 +1088,6 @@ function AnalyticsPage({ authUser }) {
 
   if (!authUser) return (
     <div className="max-w-6xl mx-auto px-4 py-16 text-center">
-      <p className="text-5xl mb-4">📊</p>
       <p className="font-display text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Analytics</p>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Sign in to see your personal performance analytics.</p>
       <a href="./index.html" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">Sign In</a>
@@ -1113,7 +1109,6 @@ function AnalyticsPage({ authUser }) {
 
   if (!data || data.length === 0) return (
     <div className="max-w-6xl mx-auto px-4 py-16 text-center">
-      <p className="text-5xl mb-4">📊</p>
       <p className="font-display text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">No data yet</p>
       <p className="text-slate-500 dark:text-slate-400">Answer some problems and your analytics will appear here.</p>
     </div>
@@ -1280,13 +1275,12 @@ function AnalyticsPage({ authUser }) {
       {topicsWithData.length > 1 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
           {[
-            { emoji:'💪', label:'Strongest Topic', value: strongest?.topic, sub: strongest?.accuracy + '% accuracy' },
-            { emoji:'📈', label:'Needs Work',       value: weakest?.topic,   sub: weakest?.accuracy + '% accuracy' },
-            { emoji:'⚡', label:'Fastest Topic',    value: fastest?.topic,   sub: fmtTime(fastest?.avgMs) + ' avg' },
-            { emoji:'🐢', label:'Slowest Topic',    value: slowest?.topic,   sub: fmtTime(slowest?.avgMs) + ' avg' },
-          ].map(({ emoji, label, value, sub }) => (
+            { label:'Strongest Topic', value: strongest?.topic, sub: strongest?.accuracy + '% accuracy' },
+            { label:'Needs Work',       value: weakest?.topic,   sub: weakest?.accuracy + '% accuracy' },
+            { label:'Fastest Topic',    value: fastest?.topic,   sub: fmtTime(fastest?.avgMs) + ' avg' },
+            { label:'Slowest Topic',    value: slowest?.topic,   sub: fmtTime(slowest?.avgMs) + ' avg' },
+          ].map(({ label, value, sub }) => (
             <div key={label} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-              <p className="text-2xl mb-1">{emoji}</p>
               <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-1">{label}</p>
               <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-tight">{value || '—'}</p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{sub}</p>
@@ -1444,7 +1438,6 @@ function HistoryPage({ authUser, allQuestions, onOpenQuestion }) {
 
   if (!authUser) return (
     <div className="max-w-6xl mx-auto px-4 py-16 text-center">
-      <p className="text-5xl mb-4">📋</p>
       <p className="font-display text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">History</p>
       <p className="text-slate-500 dark:text-slate-400 mb-6">Sign in to see your attempt history.</p>
       <a href="./index.html" className="inline-block px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-colors">Sign In</a>
@@ -1542,7 +1535,6 @@ function HistoryPage({ authUser, allQuestions, onOpenQuestion }) {
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
           {mySolutions.length === 0 ? (
             <div className="py-20 text-center">
-              <p className="text-4xl mb-3">💬</p>
               <p className="font-semibold text-slate-700 dark:text-slate-300">No community solutions yet</p>
               <p className="text-sm text-slate-400 mt-1">Solutions you post under questions will appear here.</p>
             </div>
@@ -1619,10 +1611,9 @@ function HistoryPage({ authUser, allQuestions, onOpenQuestion }) {
       <div className="flex flex-wrap gap-2 mb-5">
         {/* search */}
         <div className="relative flex-1 min-w-[200px]">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
           <input type="text" placeholder="Search title, text, topic, tags…" value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            className="w-full pl-3 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
         <Dropdown label="Result" value={filterCorrect} onChange={setFilterCorrect}
           options={['All','Correct Only','Incorrect Only']} />
@@ -1637,7 +1628,6 @@ function HistoryPage({ authUser, allQuestions, onOpenQuestion }) {
       {/* ── Table ── */}
       {sorted.length === 0 ? (
         <div className="py-20 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-          <p className="text-4xl mb-3">{rows.length === 0 ? '📋' : '🔍'}</p>
           <p className="font-semibold text-slate-700 dark:text-slate-300">
             {rows.length === 0 ? 'No attempts yet' : 'No results match your filters'}
           </p>
@@ -1844,7 +1834,6 @@ function AdminUserActivity({ authUser }) {
 
   if (!isAdmin) return (
     <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
-      <p className="text-4xl mb-3">🔒</p>
       <p className="font-bold text-slate-800 dark:text-slate-100">Admin only</p>
     </div>
   );
@@ -2327,7 +2316,6 @@ function AdminReports({ authUser }) {
       </div>
       {reports.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-4xl mb-3">✅</p>
           <p className="font-semibold text-slate-700 dark:text-slate-300">No issue reports</p>
           <p className="text-sm text-slate-400 mt-1">Reports submitted by users will appear here.</p>
         </div>
@@ -2438,7 +2426,7 @@ function ReviewImportsPanel({ authUser }) {
   const [pdfTranscribedBatchId, setPdfTranscribedBatchId] = useState(null);
   const pdfPollRef = useRef(null);
 
-  useEffect(() => () => clearInterval(pdfPollRef.current), []);
+  useEffect(() => () => clearTimeout(pdfPollRef.current), []);
 
   const blankDraftRow = () => ({
     title: '', topic: 'Algebra 1 & 2', difficulty: 'Easy', source: '',
@@ -2518,70 +2506,46 @@ function ReviewImportsPanel({ authUser }) {
     _publishError: '',
   });
 
-  // Polls import_batches AND draft_questions until the current step (either
-  // step 1 transcription or step 2 solving, kicked off by their respective
-  // Edge Functions via EdgeRuntime.waitUntil) reaches a stopping point.
-  // 'transcribed' is a deliberate pause, not a terminal status -- it means
-  // step 1 finished and the JSON is saved on the batch row, waiting for the
-  // admin to trigger step 2. Newly-inserted draft rows are merged in on every
-  // tick during solving, so questions appear live as each one lands.
-  const pollImportBatch = (batchId) => {
-    clearInterval(pdfPollRef.current);
-    const seenIds = new Set();
-    pdfPollRef.current = setInterval(async () => {
-      // Cheap, idempotent safety net: self-heals any batch that got orphaned by
-      // a hard process kill instead of a normal caught error.
-      _supabase.rpc('reap_stale_import_batches').catch(() => {});
+  // Both steps now process one expensive unit of work (one PDF page, or one
+  // needs_image question) per call, synchronously, and report progress back
+  // immediately -- no more background EdgeRuntime.waitUntil + DB polling for
+  // the rate-limited parts. The Anthropic account's 30,000-input-tokens/
+  // minute limit means even one page/image-question at a time has to be
+  // paced, so the browser re-invokes the same function after a safe delay
+  // until the response says there's nothing left to do.
+  const PACED_CALL_DELAY_MS = 65000;
 
-      const [{ data: batch, error: batchError }, { data: drafts, error: draftsError }] = await Promise.all([
-        _supabase.from('import_batches').select('status, error_message, questions_extracted, questions_total').eq('id', batchId).single(),
-        _supabase.from('draft_questions').select('*').eq('batch_id', batchId),
-      ]);
+  const continueTranscription = async (batchId) => {
+    try {
+      const { data, error } = await _supabase.functions.invoke('import-test-pdf', { body: { batch_id: batchId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      if (batchError) {
-        clearInterval(pdfPollRef.current);
+      if (data.status === 'transcribed') {
         setPdfImporting(false);
-        setPdfImportMessage('Lost track of the import job: ' + batchError.message);
-        return;
-      }
-
-      if (!draftsError && drafts) {
-        const newRows = drafts.filter(r => !seenIds.has(r.id));
-        if (newRows.length) {
-          newRows.forEach(r => seenIds.add(r.id));
-          setDraftRows(prev => [...prev, ...newRows.map(draftQuestionRowToLocal)]);
-        }
-      }
-
-      if (batch.status === 'queued' || batch.status === 'processing') {
-        const progress = batch.questions_total ? ` (${seenIds.size} of ${batch.questions_total} done so far)` : '';
-        setPdfImportMessage(`Status: ${batch.status}…${progress} this page updates automatically.`);
-        return;
-      }
-
-      clearInterval(pdfPollRef.current);
-      setPdfImporting(false);
-
-      if (batch.status === 'failed') {
-        setPdfImportMessage('Failed: ' + (batch.error_message || 'Unknown error.'));
-        return;
-      }
-
-      if (batch.status === 'transcribed') {
         setPdfTranscribedBatchId(batchId);
         setPdfImportMessage(
-          `Transcribed ${batch.questions_total ?? '?'} question(s) into JSON.` +
-          (batch.error_message ? ' Note: ' + batch.error_message : '') +
+          `Transcribed ${data.questions_so_far ?? '?'} question(s) into JSON.` +
+          (data.error_message ? ' Note: ' + data.error_message : '') +
           ' Click "Generate Answers" below to solve them.'
         );
         return;
       }
+      if (data.status === 'failed') {
+        setPdfImporting(false);
+        setPdfImportMessage('Failed: ' + (data.error_message || 'Unknown error.'));
+        return;
+      }
 
       setPdfImportMessage(
-        `Solved ${batch.questions_extracted ?? seenIds.size} question(s)` +
-        (batch.status === 'needs_attention' ? ' — some need review (answer mismatch or a solve failure), check the badges below.' : ' — all answers matched the key.')
+        `Transcribed page ${data.next_page_index} of ${data.pages_total} ` +
+        `(${data.questions_so_far ?? 0} question(s) so far)… next page in ~${PACED_CALL_DELAY_MS / 1000}s.`
       );
-    }, 4000);
+      pdfPollRef.current = setTimeout(() => continueTranscription(batchId), PACED_CALL_DELAY_MS);
+    } catch (e) {
+      setPdfImporting(false);
+      setPdfImportMessage('Transcription failed: ' + (e.message || String(e)));
+    }
   };
 
   const extractFromPdf = async () => {
@@ -2589,10 +2553,14 @@ function ReviewImportsPanel({ authUser }) {
     if (pdfFile.type !== 'application/pdf') { setPdfImportMessage('That file is not a PDF.'); return; }
     if (pdfFile.size > 15 * 1024 * 1024) { setPdfImportMessage('PDF is over 15 MB — split it into smaller page ranges first.'); return; }
 
-    clearInterval(pdfPollRef.current);
+    clearTimeout(pdfPollRef.current);
     setPdfTranscribedBatchId(null);
     setPdfImporting(true);
-    setPdfImportMessage('Queuing transcription job…');
+    setPdfImportMessage('Uploading PDF and transcribing page 1…');
+    // Self-heal any batch abandoned mid-run (e.g. the admin closed this tab
+    // partway through) -- otherwise it would sit in 'processing' forever and
+    // permanently block the "one active import at a time" guardrail below.
+    await _supabase.rpc('reap_stale_import_batches').catch(() => {});
     try {
       const dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -2611,33 +2579,91 @@ function ReviewImportsPanel({ authUser }) {
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setPdfImportMessage('Queued — transcribing to JSON in the background, this page updates automatically…');
-      pollImportBatch(data.batch_id);
+
+      if (data.status === 'transcribed') {
+        setPdfImporting(false);
+        setPdfTranscribedBatchId(data.batch_id);
+        setPdfImportMessage(`Transcribed ${data.questions_so_far ?? '?'} question(s) into JSON. Click "Generate Answers" below to solve them.`);
+        return;
+      }
+      if (data.status === 'failed') {
+        setPdfImporting(false);
+        setPdfImportMessage('Failed: ' + (data.error_message || 'Unknown error.'));
+        return;
+      }
+      setPdfImportMessage(
+        `Transcribed page ${data.next_page_index} of ${data.pages_total}… next page in ~${PACED_CALL_DELAY_MS / 1000}s.`
+      );
+      pdfPollRef.current = setTimeout(() => continueTranscription(data.batch_id), PACED_CALL_DELAY_MS);
     } catch (e) {
       setPdfImporting(false);
       setPdfImportMessage('Transcription failed: ' + (e.message || String(e)));
     }
   };
 
+  // Merges any draft_questions rows that have landed since the last check --
+  // both the cheap text-only background batch and the one-at-a-time
+  // needs_image calls insert rows independently, so this is how new ones
+  // show up live instead of waiting for the whole batch to finish.
+  const mergeNewDraftRows = async (batchId) => {
+    const { data: drafts } = await _supabase.from('draft_questions').select('*').eq('batch_id', batchId);
+    if (!drafts) return;
+    setDraftRows(prev => {
+      const known = new Set(prev.map(r => r._draftId).filter(Boolean));
+      const fresh = drafts.filter(r => !known.has(r.id)).map(draftQuestionRowToLocal);
+      return fresh.length ? [...prev, ...fresh] : prev;
+    });
+  };
+
   // Step 2: takes the JSON already saved on the batch row (by step 1) and
-  // solves every question from it -- no PDF re-upload needed.
-  const generateAnswers = async () => {
-    const batchId = pdfTranscribedBatchId;
-    if (!batchId) return;
-    setPdfTranscribedBatchId(null);
-    setPdfImporting(true);
-    setPdfImportMessage('Queuing answer generation…');
+  // solves every question from it -- no PDF re-upload needed. Text-only
+  // questions finish in the background within a call or two; needs_image
+  // questions are paced one per call like transcription.
+  const continueSolving = async (batchId) => {
     try {
       const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { batch_id: batchId } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setPdfImportMessage('Queued — solving questions in the background, this page updates automatically…');
-      pollImportBatch(batchId);
+
+      await mergeNewDraftRows(batchId);
+
+      if (data.status === 'completed' || data.status === 'needs_attention') {
+        setPdfImporting(false);
+        setPdfImportMessage(
+          `Solved ${data.questions_solved ?? '?'} question(s)` +
+          (data.status === 'needs_attention' ? ' — some need review (answer mismatch, duplicate, or a solve failure), check the badges below.' : ' — all answers matched the key.')
+        );
+        return;
+      }
+      if (data.status === 'failed') {
+        setPdfImporting(false);
+        setPdfImportMessage('Failed: ' + (data.error_message || 'Unknown error.'));
+        return;
+      }
+
+      // No rate-limit risk left to wait out if there's no needs_image work
+      // pending -- just poll quickly until the background text-only batch finishes.
+      const delay = data.needs_image_remaining > 0 ? PACED_CALL_DELAY_MS : 4000;
+      setPdfImportMessage(
+        data.needs_image_remaining > 0
+          ? `Solved ${data.questions_solved ?? 0} question(s) so far (${data.needs_image_total - data.needs_image_remaining} of ${data.needs_image_total} image question(s) done)… next one in ~${delay / 1000}s.`
+          : `Solved ${data.questions_solved ?? 0} question(s) so far… finishing up.`
+      );
+      pdfPollRef.current = setTimeout(() => continueSolving(batchId), delay);
     } catch (e) {
       setPdfImporting(false);
-      setPdfTranscribedBatchId(batchId);
-      setPdfImportMessage('Failed to start answer generation: ' + (e.message || String(e)));
+      setPdfImportMessage('Failed to generate answers: ' + (e.message || String(e)));
     }
+  };
+
+  const generateAnswers = () => {
+    const batchId = pdfTranscribedBatchId;
+    if (!batchId) return;
+    clearTimeout(pdfPollRef.current);
+    setPdfTranscribedBatchId(null);
+    setPdfImporting(true);
+    setPdfImportMessage('Solving text-only questions and the first image question…');
+    continueSolving(batchId);
   };
 
   const updateRow = (key, field, value) => {
@@ -2783,7 +2809,6 @@ function ReviewImportsPanel({ authUser }) {
   if (!isAdmin) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-16 text-center">
-        <p className="text-5xl mb-4">🔒</p>
         <p className="font-display text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Admin Only</p>
         <p className="text-slate-500 dark:text-slate-400">Review Imports is only available to the Rizvi admin account.</p>
       </div>
@@ -3106,7 +3131,6 @@ function AdminQuestionManager({ authUser }) {
   if (!isAdmin) {
     return (
       <div className="max-w-6xl mx-auto px-4 py-16 text-center">
-        <p className="text-5xl mb-4">🔒</p>
         <p className="font-display text-2xl font-black text-slate-800 dark:text-slate-100 mb-2">Admin Only</p>
         <p className="text-slate-500 dark:text-slate-400">This question manager is only available to the Rizvi admin account.</p>
       </div>
@@ -3225,7 +3249,7 @@ function AdminQuestionManager({ authUser }) {
           </button>
           <button onClick={()=>setAdminPanelTab('reports')}
             className={`px-4 py-2 rounded-lg text-sm font-semibold ${adminPanelTab==='reports' ? 'bg-rose-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
-            ⚑ Reports
+            Reports
           </button>
           <button onClick={startNewQuestion}
             className={`px-4 py-2 rounded-lg text-sm font-semibold ${adminPanelTab==='questions' ? 'bg-blue-600 text-white' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}>
@@ -3254,10 +3278,9 @@ function AdminQuestionManager({ authUser }) {
             <h2 className="font-display text-2xl font-black text-slate-900 dark:text-white mb-1">Edit Existing Questions</h2>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Search/select a question. It will open in the same question manager form with all fields filled in.</p>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
               <input value={questionSearch} onChange={e=>setQuestionSearch(e.target.value)}
                 placeholder="Search by title, question text, topic, source, tags, or ID..."
-                className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full pl-3 pr-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
           </div>
 
@@ -3417,7 +3440,6 @@ function AdminQuestionManager({ authUser }) {
               onDragLeave={e=>e.currentTarget.classList.remove('ring-2','ring-blue-500')}
               onDrop={e=>{e.preventDefault(); e.currentTarget.classList.remove('ring-2','ring-blue-500'); uploadImage(e.dataTransfer.files?.[0]);}}
               className="flex flex-col items-center justify-center gap-2 min-h-[140px] rounded-2xl border-2 border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-blue-400 dark:hover:border-blue-500 cursor-pointer transition-colors text-center px-4">
-              <span className="text-3xl">🖼️</span>
               <span className="text-sm font-bold text-slate-700 dark:text-slate-200">Drag image here</span>
               <span className="text-xs text-slate-400 dark:text-slate-500">or click to upload a screenshot/graph</span>
               <input type="file" accept="image/*" onChange={e=>uploadImage(e.target.files?.[0])} className="hidden" />
@@ -3807,7 +3829,6 @@ function App() {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center">
         <div className="text-center px-6 max-w-md">
-          <p className="text-4xl mb-4">⚠️</p>
           <p className="text-slate-800 dark:text-slate-100 font-bold text-lg mb-2">Could not load questions</p>
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">The secure question database could not be reached. Check your Supabase connection and public_questions view.</p>
           <p className="text-slate-400 text-xs font-mono">{loadError}</p>
@@ -3883,7 +3904,7 @@ function App() {
                 ${view==="recommended"
                   ? "bg-blue-600 border-blue-600 text-white"
                   : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-blue-400 hover:text-blue-600 dark:hover:text-blue-400"}`}>
-              <span>🎯 Recommended</span>
+              <span>Recommended</span>
             </button>
             <button onClick={()=>{ 
                 setTab("problems");
@@ -3895,7 +3916,7 @@ function App() {
                 ${view==="review"
                   ? "bg-amber-500 border-amber-500 text-white"
                   : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-amber-400 hover:text-amber-600 dark:hover:text-amber-400"}`}>
-              <span>🔖 Review Later</span>{bookmarks.length>0 && <span className={`text-xs font-bold px-1 py-0.5 rounded-full ${view==="review"?"bg-amber-400":"bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"}`}>{bookmarks.length}</span>}
+              <span>Review Later</span>{bookmarks.length>0 && <span className={`text-xs font-bold px-1 py-0.5 rounded-full ${view==="review"?"bg-amber-400":"bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400"}`}>{bookmarks.length}</span>}
             </button>
             <button onClick={toggleTheme} title="Toggle theme"
               className="w-8 h-8 sm:w-9 sm:h-9 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -3949,7 +3970,6 @@ function App() {
 
           <div className="rounded-2xl border border-blue-200 dark:border-blue-500/30 bg-blue-50 dark:bg-blue-500/10 p-5 mb-6">
             <div className="flex items-start gap-3">
-              <span className="text-2xl">🎯</span>
               <div>
                 <h2 className="font-bold text-blue-900 dark:text-blue-200 mb-1">How recommendations work</h2>
                 <p className="text-sm text-blue-800 dark:text-blue-300 leading-relaxed">
@@ -3968,10 +3988,9 @@ function App() {
           {/* RECOMMENDED FILTER BAR */}
           <div className="flex flex-wrap items-center gap-3 mb-5">
             <div className="relative flex-1 min-w-[220px]">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
               <input type="text" placeholder="Search title, text, topic, tags..." value={search}
                 onChange={e=>{setSearch(e.target.value); setPage(1);}}
-                className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                className="w-full pl-3 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <Dropdown label="Status" value={recStatus} options={["All","Unattempted","Correct","Missed"]} onChange={v=>{setRecStatus(v); setPage(1);}} />
             <Dropdown label="Topic" value={topic} options={TOPICS} onChange={v=>onFilter(setTopic,v)} />
@@ -3981,7 +4000,6 @@ function App() {
 
           {recommendedVisible.length === 0 ? (
             <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <p className="text-4xl mb-3">🎯</p>
               <p className="font-semibold text-slate-700 dark:text-slate-300">No recommendations yet</p>
               <p className="text-sm text-slate-400 mt-1">Answer a few problems first so the site can learn your weak areas.</p>
             </div>
@@ -4011,7 +4029,6 @@ function App() {
           </div>
           {bookmarks.length === 0 ? (
             <div className="text-center py-24 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-              <p className="text-4xl mb-3">🔖</p>
               <p className="font-semibold text-slate-700 dark:text-slate-300">No bookmarks yet</p>
               <p className="text-sm text-slate-400 mt-1">Open any problem and click "Review later" to save it here.</p>
             </div>
@@ -4038,10 +4055,9 @@ function App() {
         {/* FILTER BAR */}
         <div className="flex flex-wrap items-center gap-3 mb-5">
           <div className="relative flex-1 min-w-[200px]">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">🔍</span>
             <input type="text" placeholder="Search problems…" value={search}
               onChange={e=>{setSearch(e.target.value); setRecommendedMode(false); setView("list"); setPage(1);}}
-              className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              className="w-full pl-3 pr-3 py-2 text-sm rounded-lg border bg-white border-slate-200 text-slate-700 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500" />
           </div>
           <Dropdown label="Topic" value={topic} options={TOPICS} onChange={v=>onFilter(setTopic,v)} />
           <Dropdown label="Difficulty" value={diff} options={DIFFICULTIES} onChange={v=>onFilter(setDiff,v)} />
@@ -4055,7 +4071,7 @@ function App() {
           </div>
           {pageItems.length === 0 ? (
             <div className="py-20 text-center text-slate-400 dark:text-slate-600">
-              <p className="text-4xl mb-3">🔍</p><p className="font-semibold">No problems found</p>
+              <p className="font-semibold">No problems found</p>
             </div>
           ) : pageItems.map((q, i) => {
             const globalIdx = (pageClamped-1)*PAGE_SIZE + i;

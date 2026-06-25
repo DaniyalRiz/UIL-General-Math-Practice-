@@ -1,9 +1,21 @@
 // Admin-only: Step 2 of the PDF import pipeline. Takes a batch_id whose
 // import_batches row already has status='transcribed' (written by
 // import-test-pdf / step 1) and reads `boundaries_json` back out of the
-// database -- not from any in-memory state -- to solve each question and
-// write draft_questions rows for human review. Never touches `questions` and
-// never sets review_status to anything but 'pending'.
+// database to solve each question and write draft_questions rows for human
+// review. Never touches `questions` and never sets review_status to
+// anything but 'pending'.
+//
+// Text-only questions carry no PDF attachment, so they're cheap and are all
+// solved together in the background via EdgeRuntime.waitUntil, kicked off
+// exactly once per batch (on the first call, detected via the batch's status
+// still being 'transcribed'). needs_image questions re-attach a PDF page and
+// are expensive enough to risk the account's 30,000-input-tokens/minute
+// limit, so this function solves at most one of them per invocation and lets
+// the browser drive it forward with a paced delay between calls -- the same
+// pattern as step 1's per-page transcription. "What's left to do" is derived
+// by diffing boundaries_json against the draft_questions rows already
+// inserted, so this needs no separate progress column and is safe to call
+// again if a previous response was lost.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { encodeBase64 } from "jsr:@std/encoding/base64";
@@ -14,7 +26,7 @@ const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const ANTHROPIC_MODEL = "claude-sonnet-4-6";
-const CALL_TIMEOUT_MS = 140_000;
+const CALL_TIMEOUT_MS = 100_000;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
@@ -29,7 +41,6 @@ function json(body: unknown, status = 200) {
   });
 }
 
-// Solves exactly one already-transcribed question.
 const SOLVE_TOOL = {
   name: "solve_question",
   description: "Solve this single math competition question and show the full worked solution.",
@@ -78,9 +89,6 @@ function choiceLetter(choiceText: string): string | null {
   return m ? m[1].toUpperCase() : null;
 }
 
-// Streams a Messages API tool-forced response and returns the assembled tool
-// input, instead of waiting for one blocking JSON reply. Raw SSE parsing (no
-// SDK), matching the rest of this function's fetch-based style.
 async function streamToolCall(
   body: Record<string, unknown>,
   signal: AbortSignal,
@@ -154,7 +162,9 @@ function withTimeout<T>(fn: (signal: AbortSignal) => Promise<T>): Promise<T> {
 
 // Runs `fn` over every item like Promise.allSettled, but never more than
 // `limit` calls in flight at once -- keeps the per-minute token/request burst
-// against the Anthropic API small instead of firing everything at once.
+// against the Anthropic API small instead of firing everything at once. Only
+// used for text-only questions, which carry no PDF attachment and so don't
+// risk the rate limit the way needs_image questions do.
 async function runWithConcurrency<T, R>(
   items: T[],
   limit: number,
@@ -182,7 +192,7 @@ type SupabaseClient = ReturnType<typeof createClient>;
 async function markFailed(db: SupabaseClient, batchId: string, message: string) {
   await db
     .from("import_batches")
-    .update({ status: "failed", error_message: message, finished_at: new Date().toISOString() })
+    .update({ status: "failed", error_message: message, finished_at: new Date().toISOString(), updated_at: new Date().toISOString() })
     .eq("id", batchId);
 }
 
@@ -255,105 +265,140 @@ async function solveQuestion(
   return { extracted_answer, explanation };
 }
 
-// Runs after the kickoff response has already been sent to the browser. Reads
-// boundaries_json + answer_key + original_test back out of the batch row
-// (not from any earlier in-memory state), solves each question independently
-// and in parallel, inserting each draft_questions row as soon as it's ready
-// so the review UI can show partial results live.
-async function runSolving(
+// Solves one question end-to-end and inserts its draft_questions row
+// immediately -- shared by both the background text-only batch and the
+// single synchronous needs-image call. `dedupKeys` is the set of
+// "original_test|original_question_number" pairs that already exist in the
+// published `questions` table, so an admin re-importing the same test twice
+// gets a clear warning instead of a silent duplicate.
+async function solveAndInsertOne(
   db: SupabaseClient,
   batchId: string,
-  boundaries: QuestionBoundary[],
+  q: QuestionBoundary,
+  pagePdfs: string[],
   sourceLabel: string | null,
   originalTest: string | null,
-  answerKey: string | null,
-  sourcePdfPath: string | null,
+  answerKeyMap: Map<number, string>,
+  hasAnswerKey: boolean,
+  dedupKeys: Set<string>,
+): Promise<void> {
+  let extracted_answer = "";
+  let explanation = "[Automatic solving failed -- please solve manually.]";
+  let solveError: string | null = null;
+  try {
+    const solved = await solveQuestion(pagePdfs, q);
+    extracted_answer = solved.extracted_answer;
+    explanation = solved.explanation;
+  } catch (err) {
+    solveError = err instanceof Error && err.name === "AbortError"
+      ? `Claude did not finish solving this question within ${CALL_TIMEOUT_MS / 1000}s.`
+      : err instanceof Error
+        ? err.message
+        : String(err);
+  }
+
+  const extractedLetter = choiceLetter(extracted_answer) ?? choiceLetter(q.choices[0] ?? "");
+  const keyLetter = answerKeyMap.get(q.original_question_number);
+  let verification_status: "match" | "mismatch" | "unverified" | "no_answer_key" = "unverified";
+  let verification_notes: string | null = solveError ? `Solving failed: ${solveError}` : null;
+  if (solveError) {
+    verification_status = "unverified";
+  } else if (!hasAnswerKey) {
+    verification_status = "no_answer_key";
+  } else if (!keyLetter) {
+    verification_status = "unverified";
+    verification_notes = "Answer key did not include this question number";
+  } else if (extractedLetter && extractedLetter === keyLetter) {
+    verification_status = "match";
+  } else {
+    verification_status = "mismatch";
+    verification_notes = `Claude solved (${extractedLetter ?? "?"}), answer key says (${keyLetter})`;
+  }
+
+  if (originalTest && dedupKeys.has(`${originalTest}|${q.original_question_number}`)) {
+    const dupeNote = "Possible duplicate: a question with this test/number already exists in the published bank.";
+    verification_notes = verification_notes ? `${verification_notes} ${dupeNote}` : dupeNote;
+  }
+
+  const matchedChoice = q.choices.find((c) => choiceLetter(c) === (keyLetter ?? extractedLetter));
+
+  const row = {
+    batch_id: batchId,
+    title: q.title,
+    topic: q.topic,
+    difficulty: q.difficulty,
+    source: sourceLabel ?? null,
+    question: q.question,
+    choices: q.choices,
+    tags: q.tags ?? [],
+    extracted_answer,
+    claude_solved_answer: extracted_answer,
+    answer: matchedChoice ?? extracted_answer,
+    explanation,
+    needs_image: q.needs_image,
+    image_alt: q.needs_image ? q.image_alt : null,
+    verification_status,
+    verification_notes,
+    original_test: originalTest ?? null,
+    original_question_number: q.original_question_number,
+    source_reference: sourceLabel ? `${sourceLabel} #${q.original_question_number}` : null,
+    review_status: "pending",
+  };
+
+  // Insert immediately -- this is what makes results show up live in the
+  // review UI instead of waiting for every question to finish.
+  const { error: insertErr } = await db.from("draft_questions").insert(row);
+  if (insertErr) throw new Error(`Failed to insert question ${q.original_question_number}: ${insertErr.message}`);
+}
+
+// Fired once via EdgeRuntime.waitUntil on the first call for a batch.
+async function solveTextOnlyBatch(
+  db: SupabaseClient,
+  batchId: string,
+  questions: QuestionBoundary[],
+  sourceLabel: string | null,
+  originalTest: string | null,
+  answerKeyMap: Map<number, string>,
+  hasAnswerKey: boolean,
+  dedupKeys: Set<string>,
 ) {
-  const pagePdfs = await loadPagePdfs(db, sourcePdfPath);
-  const answerKeyMap = answerKey ? parseAnswerKey(answerKey) : new Map<number, string>();
-
-  const results = await runWithConcurrency(boundaries, 6, async (q) => {
-    let extracted_answer = "";
-    let explanation = "[Automatic solving failed -- please solve manually.]";
-    let solveError: string | null = null;
-    try {
-      const solved = await solveQuestion(pagePdfs, q);
-      extracted_answer = solved.extracted_answer;
-      explanation = solved.explanation;
-    } catch (err) {
-      solveError = err instanceof Error && err.name === "AbortError"
-        ? `Claude did not finish solving this question within ${CALL_TIMEOUT_MS / 1000}s.`
-        : err instanceof Error
-          ? err.message
-          : String(err);
-    }
-
-    const extractedLetter = choiceLetter(extracted_answer) ?? choiceLetter(q.choices[0] ?? "");
-    const keyLetter = answerKeyMap.get(q.original_question_number);
-    let verification_status: "match" | "mismatch" | "unverified" | "no_answer_key" = "unverified";
-    let verification_notes: string | null = solveError ? `Solving failed: ${solveError}` : null;
-    if (solveError) {
-      verification_status = "unverified";
-    } else if (!answerKey) {
-      verification_status = "no_answer_key";
-    } else if (!keyLetter) {
-      verification_status = "unverified";
-      verification_notes = "Answer key did not include this question number";
-    } else if (extractedLetter && extractedLetter === keyLetter) {
-      verification_status = "match";
-    } else {
-      verification_status = "mismatch";
-      verification_notes = `Claude solved (${extractedLetter ?? "?"}), answer key says (${keyLetter})`;
-    }
-
-    const matchedChoice = q.choices.find((c) => choiceLetter(c) === (keyLetter ?? extractedLetter));
-
-    const row = {
-      batch_id: batchId,
-      title: q.title,
-      topic: q.topic,
-      difficulty: q.difficulty,
-      source: sourceLabel ?? null,
-      question: q.question,
-      choices: q.choices,
-      tags: q.tags ?? [],
-      extracted_answer,
-      claude_solved_answer: extracted_answer,
-      answer: matchedChoice ?? extracted_answer,
-      explanation,
-      needs_image: q.needs_image,
-      image_alt: q.needs_image ? q.image_alt : null,
-      verification_status,
-      verification_notes,
-      original_test: originalTest ?? null,
-      original_question_number: q.original_question_number,
-      source_reference: sourceLabel ? `${sourceLabel} #${q.original_question_number}` : null,
-      review_status: "pending",
-    };
-
-    // Insert immediately -- this is what makes results show up live in the
-    // review UI instead of waiting for every question to finish.
-    const { error: insertErr } = await db.from("draft_questions").insert(row);
-    if (insertErr) throw new Error(`Failed to insert question ${q.original_question_number}: ${insertErr.message}`);
-    return { verification_status, hadError: !!solveError };
-  });
-
-  const inserted = results.filter((r) => r.status === "fulfilled").length;
-  const needsAttention = results.some(
-    (r) => r.status === "rejected" || (r.status === "fulfilled" && (r.value.verification_status === "mismatch" || r.value.hadError)),
+  await runWithConcurrency(questions, 6, (q) =>
+    solveAndInsertOne(db, batchId, q, [], sourceLabel, originalTest, answerKeyMap, hasAnswerKey, dedupKeys)
   );
+  await finalizeIfDone(db, batchId);
+}
 
-  if (inserted === 0) {
+// Checks whether every boundary now has a matching draft_questions row, and
+// if so, flips the batch to its terminal status. Safe to call after every
+// partial step -- a no-op until the last question lands.
+async function finalizeIfDone(db: SupabaseClient, batchId: string) {
+  const { data: batch } = await db.from("import_batches").select("boundaries_json").eq("id", batchId).single();
+  const boundaries = (batch?.boundaries_json ?? []) as QuestionBoundary[];
+  const { data: drafts } = await db
+    .from("draft_questions")
+    .select("verification_status, verification_notes")
+    .eq("batch_id", batchId);
+  if (!drafts || drafts.length < boundaries.length) return; // still in flight
+
+  if (drafts.length === 0) {
     await markFailed(db, batchId, "All questions failed to solve -- check individual question errors and retry.");
     return;
   }
+
+  const needsAttention = drafts.some(
+    (r) =>
+      r.verification_status === "mismatch" ||
+      (r.verification_notes ?? "").startsWith("Solving failed:") ||
+      (r.verification_notes ?? "").includes("Possible duplicate"),
+  );
 
   await db
     .from("import_batches")
     .update({
       status: needsAttention ? "needs_attention" : "completed",
-      questions_extracted: inserted,
+      questions_extracted: drafts.length,
       finished_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     .eq("id", batchId);
 }
@@ -397,28 +442,88 @@ Deno.serve(async (req: Request) => {
     .single();
   if (batchErr || !batch) return json({ error: `Import batch not found: ${batchErr?.message}` }, 404);
 
-  if (batch.status !== "transcribed") {
-    return json({ error: `Batch is in status '${batch.status}', expected 'transcribed'. Nothing to solve.` }, 409);
+  if (batch.status !== "transcribed" && batch.status !== "processing") {
+    return json({ error: `Batch is in status '${batch.status}'. Nothing to solve.` }, 409);
   }
-  if (!batch.boundaries_json || !Array.isArray(batch.boundaries_json) || batch.boundaries_json.length === 0) {
+  const boundaries = (batch.boundaries_json ?? []) as QuestionBoundary[];
+  if (boundaries.length === 0) {
     return json({ error: "Batch has no transcribed questions to solve" }, 409);
   }
 
-  await db.from("import_batches").update({ status: "processing" }).eq("id", batch_id);
+  const isFirstCall = batch.status === "transcribed";
+  if (isFirstCall) {
+    await db.from("import_batches").update({ status: "processing" }).eq("id", batch_id);
+  }
 
-  // @ts-ignore -- EdgeRuntime is a Supabase Edge Functions global, typed by the
-  // jsr:@supabase/functions-js/edge-runtime.d.ts import at the top of this file.
-  EdgeRuntime.waitUntil(
-    runSolving(
-      db,
-      batch_id,
-      batch.boundaries_json as QuestionBoundary[],
-      batch.source_label ?? null,
-      batch.original_test ?? null,
-      batch.answer_key ?? null,
-      batch.source_pdf_path ?? null,
-    ),
-  );
+  const { data: existingDrafts } = await db
+    .from("draft_questions")
+    .select("original_question_number")
+    .eq("batch_id", batch_id);
+  const solvedNumbers = new Set((existingDrafts ?? []).map((r) => r.original_question_number));
+  const remaining = boundaries.filter((b) => !solvedNumbers.has(b.original_question_number));
+  const remainingTextOnly = remaining.filter((b) => !b.needs_image);
+  const remainingNeedsImage = remaining.filter((b) => b.needs_image);
+  const totalNeedsImage = boundaries.filter((b) => b.needs_image).length;
 
-  return json({ batch_id, status: "processing" }, 202);
+  const answerKeyMap = batch.answer_key ? parseAnswerKey(batch.answer_key as string) : new Map<number, string>();
+  const hasAnswerKey = !!batch.answer_key;
+
+  // Dedup check against the published bank -- scoped to this batch's
+  // original_test so it stays a single cheap query.
+  let dedupKeys = new Set<string>();
+  if (batch.original_test) {
+    const { data: existingQs } = await db
+      .from("questions")
+      .select("original_question_number")
+      .eq("original_test", batch.original_test);
+    dedupKeys = new Set((existingQs ?? []).map((r) => `${batch.original_test}|${r.original_question_number}`));
+  }
+
+  if (isFirstCall && remainingTextOnly.length > 0) {
+    // @ts-ignore -- EdgeRuntime is a Supabase Edge Functions global, typed by the
+    // jsr:@supabase/functions-js/edge-runtime.d.ts import at the top of this file.
+    EdgeRuntime.waitUntil(
+      solveTextOnlyBatch(
+        db, batch_id, remainingTextOnly,
+        batch.source_label ?? null, batch.original_test ?? null,
+        answerKeyMap, hasAnswerKey, dedupKeys,
+      ),
+    );
+  }
+
+  if (remainingNeedsImage.length > 0) {
+    const pagePdfs = await loadPagePdfs(db, batch.source_pdf_path ?? null);
+    await solveAndInsertOne(
+      db, batch_id, remainingNeedsImage[0], pagePdfs,
+      batch.source_label ?? null, batch.original_test ?? null,
+      answerKeyMap, hasAnswerKey, dedupKeys,
+    );
+  }
+
+  await finalizeIfDone(db, batch_id);
+
+  // Heartbeat -- needs_image questions are solved one per call with a paced
+  // delay between them and don't otherwise touch import_batches, so without
+  // this a long multi-image-question batch could go quiet long enough to
+  // look stale even while genuinely progressing.
+  await db.from("import_batches").update({ updated_at: new Date().toISOString() }).eq("id", batch_id);
+
+  const { data: freshBatch } = await db
+    .from("import_batches")
+    .select("status, error_message")
+    .eq("id", batch_id)
+    .single();
+  const { count: solvedCount } = await db
+    .from("draft_questions")
+    .select("*", { count: "exact", head: true })
+    .eq("batch_id", batch_id);
+
+  return json({
+    batch_id,
+    status: freshBatch?.status ?? "processing",
+    error_message: freshBatch?.error_message ?? null,
+    needs_image_total: totalNeedsImage,
+    needs_image_remaining: Math.max(0, remainingNeedsImage.length - 1),
+    questions_solved: solvedCount ?? 0,
+  }, 202);
 });
