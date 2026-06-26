@@ -282,11 +282,7 @@ type SolvedFields = {
   verification_notes: string | null;
 };
 
-// Solves one question and computes its verification fields -- shared by the
-// initial insert path (background text-only batch, single needs-image call)
-// and the redo path (re-solving one already-inserted question in place, e.g.
-// to fix a bad LaTeX delimiter or a key mismatch without redoing the batch).
-async function solveAndBuildFields(
+async function solveOnce(
   q: QuestionBoundary,
   pagePdfs: string[],
   originalTest: string | null,
@@ -342,6 +338,33 @@ async function solveAndBuildFields(
     verification_status,
     verification_notes,
   };
+}
+
+// Solves one question and computes its verification fields -- shared by the
+// initial insert path (background text-only batch, single needs-image call)
+// and the redo path (re-solving one already-inserted question in place).
+// Retries automatically while the result is a genuine answer-key mismatch,
+// so the admin never has to manually press Redo just to get Claude to try
+// again -- capped so a question that's actually hard (not just unlucky)
+// can't loop forever burning API calls. Only a mismatch is retried: a solve
+// failure, a missing key, or an already-correct match has nothing to gain
+// from hammering the API again.
+const MAX_SOLVE_ATTEMPTS = 5;
+async function solveAndBuildFields(
+  q: QuestionBoundary,
+  pagePdfs: string[],
+  originalTest: string | null,
+  answerKeyMap: Map<number, string>,
+  hasAnswerKey: boolean,
+  dedupKeys: Set<string>,
+): Promise<SolvedFields> {
+  let fields: SolvedFields = await solveOnce(q, pagePdfs, originalTest, answerKeyMap, hasAnswerKey, dedupKeys);
+  let attempts = 1;
+  while (fields.verification_status === "mismatch" && attempts < MAX_SOLVE_ATTEMPTS) {
+    fields = await solveOnce(q, pagePdfs, originalTest, answerKeyMap, hasAnswerKey, dedupKeys);
+    attempts++;
+  }
+  return fields;
 }
 
 // Solves one question end-to-end and inserts its draft_questions row

@@ -2913,38 +2913,28 @@ function ReviewImportsPanel({ authUser }) {
   // Re-solves exactly one question in place (e.g. to fix a bad LaTeX
   // delimiter or an answer-key mismatch) without rerunning the whole batch.
   // Only applies to rows that came from the automatic PDF pipeline -- only
-  // those have a real draft_questions id and batch data backing them.
-  // Keeps retrying automatically while the result is a key mismatch (capped,
-  // so a genuinely-hard question can't spin forever burning API calls) --
-  // the mismatch badge above clears on its own once verification_status
-  // flips to 'match', since it just reads off this same row state.
-  const MAX_REDO_ATTEMPTS = 5;
+  // those have a real draft_questions id and batch data backing them. The
+  // mismatch-retry loop lives server-side now (solve-pdf-questions retries
+  // internally up to 5x on its own before responding), so this is a single
+  // call -- looping here too would compound into way more attempts than
+  // intended. The mismatch badge above clears on its own once
+  // verification_status flips to 'match', since it just reads this row state.
   const redoQuestion = async (key, draftId) => {
     if (!draftId) return;
     updateRow(key, '_redoing', true);
     updateRow(key, '_redoMsg', '');
     try {
-      let attempt = 0;
-      let status = null;
-      while (attempt < MAX_REDO_ATTEMPTS) {
-        attempt++;
-        if (attempt > 1) updateRow(key, '_redoMsg', `Still mismatched — retrying (${attempt}/${MAX_REDO_ATTEMPTS})…`);
-        const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { redo_draft_id: draftId } });
-        if (error) throw error;
-        if (data?.error) throw new Error(data.error);
-        status = data.verification_status;
-        updateRow(key, 'answer', data.answer);
-        updateRow(key, 'explanation', data.explanation);
-        updateRow(key, 'verification_status', data.verification_status);
-        updateRow(key, 'verification_notes', data.verification_notes);
-        // Only a mismatch is worth auto-retrying -- match is done, and
-        // no_answer_key/unverified have nothing to converge toward.
-        if (status !== 'mismatch') break;
-      }
-      if (status === 'match') {
+      const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { redo_draft_id: draftId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      updateRow(key, 'answer', data.answer);
+      updateRow(key, 'explanation', data.explanation);
+      updateRow(key, 'verification_status', data.verification_status);
+      updateRow(key, 'verification_notes', data.verification_notes);
+      if (data.verification_status === 'match') {
         updateRow(key, '_redoMsg', 'Now matches the answer key.');
-      } else if (status === 'mismatch') {
-        updateRow(key, '_redoMsg', `Still mismatched after ${attempt} attempt(s) — may need manual review.`);
+      } else if (data.verification_status === 'mismatch') {
+        updateRow(key, '_redoMsg', 'Still mismatched after several automatic attempts — may need manual review.');
       } else {
         updateRow(key, '_redoMsg', 'Redone — review the new answer/explanation below.');
       }
