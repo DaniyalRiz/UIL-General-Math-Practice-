@@ -2559,9 +2559,10 @@ function ReviewImportsPanel({ authUser }) {
   const [publishing, setPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
   const [pdfFile, setPdfFile] = useState(null);
-  const [pdfSourceLabel, setPdfSourceLabel] = useState('');
   const [pdfOriginalTest, setPdfOriginalTest] = useState('');
   const [pdfAnswerKey, setPdfAnswerKey] = useState('');
+  const [answerKeyExtracting, setAnswerKeyExtracting] = useState(false);
+  const [answerKeyExtractMsg, setAnswerKeyExtractMsg] = useState('');
   const [pdfImporting, setPdfImporting] = useState(false);
   const [pdfImportMessage, setPdfImportMessage] = useState('');
   // Set once step 1 (transcription) finishes -- non-null means there's a
@@ -2692,6 +2693,42 @@ function ReviewImportsPanel({ authUser }) {
     }
   };
 
+  // Uploading the answer key as its own file (instead of relying on Claude to
+  // spot it buried in the test PDF, or retyping it by hand) gives a cleaner,
+  // dedicated OCR pass on just that page -- more reliable than detection
+  // mid-batch. Just fills the existing answer-key textarea below so the
+  // admin can still review/fix it before transcribing; the manual-key-wins
+  // priority in import-test-pdf is unaffected either way.
+  const extractAnswerKeyFile = async (file) => {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !file.type.startsWith('image/')) {
+      setAnswerKeyExtractMsg('Please choose a PDF or image file.');
+      return;
+    }
+    setAnswerKeyExtracting(true);
+    setAnswerKeyExtractMsg('Reading answer key…');
+    try {
+      const dataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const file_base64 = dataUrl.split(',')[1];
+      const { data, error } = await _supabase.functions.invoke('extract-answer-key', {
+        body: { file_base64, media_type: file.type },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setPdfAnswerKey(data.answer_key_text || '');
+      setAnswerKeyExtractMsg('Answer key extracted — review it below before transcribing.');
+    } catch (e) {
+      setAnswerKeyExtractMsg('Could not read answer key: ' + (e.message || String(e)));
+    } finally {
+      setAnswerKeyExtracting(false);
+    }
+  };
+
   const extractFromPdf = async () => {
     if (!pdfFile) { setPdfImportMessage('Pick a PDF file first.'); return; }
     if (pdfFile.type !== 'application/pdf') { setPdfImportMessage('That file is not a PDF.'); return; }
@@ -2722,7 +2759,7 @@ function ReviewImportsPanel({ authUser }) {
       const { data, error } = await _supabase.functions.invoke('import-test-pdf', {
         body: {
           pdf_base64,
-          source_label: pdfSourceLabel || null,
+          source_label: pdfOriginalTest || null,
           original_test: pdfOriginalTest || null,
           answer_key: pdfAnswerKey || null,
         },
@@ -3024,10 +3061,16 @@ function ReviewImportsPanel({ authUser }) {
           <div className="grid sm:grid-cols-2 gap-3">
             <input type="file" accept="application/pdf" onChange={e => setPdfFile(e.target.files?.[0] || null)}
               className="text-sm text-slate-600 dark:text-slate-300 sm:col-span-2" />
-            <input value={pdfSourceLabel} onChange={e => setPdfSourceLabel(e.target.value)} placeholder="Source label, e.g. TMSCA HSM Test 5"
-              className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm" />
             <input value={pdfOriginalTest} onChange={e => setPdfOriginalTest(e.target.value)} placeholder="Original test, e.g. 2025-2026 TMSCA Mathematics Test 5"
-              className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm" />
+              className="w-full px-3 py-2 rounded-lg border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm sm:col-span-2" />
+            <div className="sm:col-span-2 flex items-center gap-2 flex-wrap">
+              <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                {answerKeyExtracting ? 'Reading…' : 'Upload answer key (PDF or image, optional)'}
+                <input type="file" accept="application/pdf,image/*" className="hidden" disabled={answerKeyExtracting}
+                  onChange={e => extractAnswerKeyFile(e.target.files?.[0])} />
+              </label>
+              {answerKeyExtractMsg && <span className="text-xs text-slate-500 dark:text-slate-400">{answerKeyExtractMsg}</span>}
+            </div>
             <textarea value={pdfAnswerKey} onChange={e => setPdfAnswerKey(e.target.value)} rows={2}
               placeholder="Answer key (optional), e.g. 1.C 2.C 3.D 4.E or just C, C, D, E"
               className="w-full px-3 py-2 rounded-xl border bg-white border-slate-200 dark:bg-slate-800 dark:border-slate-700 text-sm resize-none sm:col-span-2" />
