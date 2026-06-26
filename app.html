@@ -2914,19 +2914,40 @@ function ReviewImportsPanel({ authUser }) {
   // delimiter or an answer-key mismatch) without rerunning the whole batch.
   // Only applies to rows that came from the automatic PDF pipeline -- only
   // those have a real draft_questions id and batch data backing them.
+  // Keeps retrying automatically while the result is a key mismatch (capped,
+  // so a genuinely-hard question can't spin forever burning API calls) --
+  // the mismatch badge above clears on its own once verification_status
+  // flips to 'match', since it just reads off this same row state.
+  const MAX_REDO_ATTEMPTS = 5;
   const redoQuestion = async (key, draftId) => {
     if (!draftId) return;
     updateRow(key, '_redoing', true);
     updateRow(key, '_redoMsg', '');
     try {
-      const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { redo_draft_id: draftId } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      updateRow(key, 'answer', data.answer);
-      updateRow(key, 'explanation', data.explanation);
-      updateRow(key, 'verification_status', data.verification_status);
-      updateRow(key, 'verification_notes', data.verification_notes);
-      updateRow(key, '_redoMsg', 'Redone — review the new answer/explanation below.');
+      let attempt = 0;
+      let status = null;
+      while (attempt < MAX_REDO_ATTEMPTS) {
+        attempt++;
+        if (attempt > 1) updateRow(key, '_redoMsg', `Still mismatched — retrying (${attempt}/${MAX_REDO_ATTEMPTS})…`);
+        const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { redo_draft_id: draftId } });
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
+        status = data.verification_status;
+        updateRow(key, 'answer', data.answer);
+        updateRow(key, 'explanation', data.explanation);
+        updateRow(key, 'verification_status', data.verification_status);
+        updateRow(key, 'verification_notes', data.verification_notes);
+        // Only a mismatch is worth auto-retrying -- match is done, and
+        // no_answer_key/unverified have nothing to converge toward.
+        if (status !== 'mismatch') break;
+      }
+      if (status === 'match') {
+        updateRow(key, '_redoMsg', 'Now matches the answer key.');
+      } else if (status === 'mismatch') {
+        updateRow(key, '_redoMsg', `Still mismatched after ${attempt} attempt(s) — may need manual review.`);
+      } else {
+        updateRow(key, '_redoMsg', 'Redone — review the new answer/explanation below.');
+      }
     } catch (e) {
       updateRow(key, '_redoMsg', 'Redo failed: ' + (e.message || String(e)));
     } finally {
@@ -3247,7 +3268,7 @@ function ReviewImportsPanel({ authUser }) {
                     )}
                   </div>
                 )}
-                {r.needs_image && !r.image_pending_filename && (
+                {!r.image_pending_filename && (
                   r.image ? (
                     <div className="rounded-xl border border-emerald-300 dark:border-emerald-700 p-3 bg-emerald-50 dark:bg-emerald-500/10">
                       <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">✓ Diagram attached</p>
@@ -3258,12 +3279,20 @@ function ReviewImportsPanel({ authUser }) {
                       </label>
                       {r._imageUploadMsg && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{r._imageUploadMsg}</p>}
                     </div>
-                  ) : (
+                  ) : r.needs_image ? (
                     <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-700 p-3 bg-amber-50 dark:bg-amber-500/10">
                       <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">⚠ Diagram needed (not auto-cropped yet)</p>
                       <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">{r.image_alt || 'No description provided.'}</p>
                       <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer">
                         {r._imageUploading ? 'Uploading…' : 'Upload diagram'}
+                        <input type="file" accept="image/*" className="hidden" disabled={r._imageUploading} onChange={e=>uploadDraftDiagram(r._key, e.target.files?.[0])} />
+                      </label>
+                      {r._imageUploadMsg && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{r._imageUploadMsg}</p>}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-3">
+                      <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer">
+                        {r._imageUploading ? 'Uploading…' : 'Add diagram (optional)'}
                         <input type="file" accept="image/*" className="hidden" disabled={r._imageUploading} onChange={e=>uploadDraftDiagram(r._key, e.target.files?.[0])} />
                       </label>
                       {r._imageUploadMsg && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{r._imageUploadMsg}</p>}
