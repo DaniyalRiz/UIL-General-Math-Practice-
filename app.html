@@ -2615,7 +2615,7 @@ function ReviewImportsPanel({ authUser }) {
     // whole import flow -- if it times out, the actual upload below still
     // proceeds, and the real guardrail error (if any) will surface normally.
     await Promise.race([
-      _supabase.rpc('reap_stale_import_batches').catch(() => {}),
+      Promise.resolve(_supabase.rpc('reap_stale_import_batches')).catch(() => {}),
       new Promise(resolve => setTimeout(resolve, 8000)),
     ]);
     try {
