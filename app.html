@@ -2909,6 +2909,30 @@ function ReviewImportsPanel({ authUser }) {
     updateRow(rowKey, 'image', data.publicUrl);
     updateRow(rowKey, '_imageUploadMsg', 'Diagram uploaded and attached.');
   };
+
+  // Re-solves exactly one question in place (e.g. to fix a bad LaTeX
+  // delimiter or an answer-key mismatch) without rerunning the whole batch.
+  // Only applies to rows that came from the automatic PDF pipeline -- only
+  // those have a real draft_questions id and batch data backing them.
+  const redoQuestion = async (key, draftId) => {
+    if (!draftId) return;
+    updateRow(key, '_redoing', true);
+    updateRow(key, '_redoMsg', '');
+    try {
+      const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { redo_draft_id: draftId } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      updateRow(key, 'answer', data.answer);
+      updateRow(key, 'explanation', data.explanation);
+      updateRow(key, 'verification_status', data.verification_status);
+      updateRow(key, 'verification_notes', data.verification_notes);
+      updateRow(key, '_redoMsg', 'Redone — review the new answer/explanation below.');
+    } catch (e) {
+      updateRow(key, '_redoMsg', 'Redo failed: ' + (e.message || String(e)));
+    } finally {
+      updateRow(key, '_redoing', false);
+    }
+  };
   const setStatus = (key, status) => {
     updateRow(key, '_status', status);
     const row = draftRows.find(r => r._key === key);
@@ -3164,9 +3188,19 @@ function ReviewImportsPanel({ authUser }) {
                     <button onClick={()=>setStatus(r._key, 'pending')}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">Reset</button>
                   )}
+                  {r._draftId && (
+                    <button onClick={()=>redoQuestion(r._key, r._draftId)} disabled={r._redoing}
+                      title="Re-solve this question with Claude (fixes bad LaTeX, answer mismatches, etc.)"
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40">
+                      {r._redoing ? 'Redoing…' : 'Redo'}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
+            {r._redoMsg && (
+              <p className={`text-xs mt-1 ${/failed/i.test(r._redoMsg) ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{r._redoMsg}</p>
+            )}
 
             <div className="grid lg:grid-cols-2 gap-4">
               {/* Editable fields */}

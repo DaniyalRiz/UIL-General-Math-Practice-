@@ -273,23 +273,27 @@ async function solveQuestion(
   return { extracted_answer, explanation };
 }
 
-// Solves one question end-to-end and inserts its draft_questions row
-// immediately -- shared by both the background text-only batch and the
-// single synchronous needs-image call. `dedupKeys` is the set of
-// "original_test|original_question_number" pairs that already exist in the
-// published `questions` table, so an admin re-importing the same test twice
-// gets a clear warning instead of a silent duplicate.
-async function solveAndInsertOne(
-  db: SupabaseClient,
-  batchId: string,
+type SolvedFields = {
+  extracted_answer: string;
+  claude_solved_answer: string;
+  answer: string;
+  explanation: string;
+  verification_status: "match" | "mismatch" | "unverified" | "no_answer_key";
+  verification_notes: string | null;
+};
+
+// Solves one question and computes its verification fields -- shared by the
+// initial insert path (background text-only batch, single needs-image call)
+// and the redo path (re-solving one already-inserted question in place, e.g.
+// to fix a bad LaTeX delimiter or a key mismatch without redoing the batch).
+async function solveAndBuildFields(
   q: QuestionBoundary,
   pagePdfs: string[],
-  sourceLabel: string | null,
   originalTest: string | null,
   answerKeyMap: Map<number, string>,
   hasAnswerKey: boolean,
   dedupKeys: Set<string>,
-): Promise<void> {
+): Promise<SolvedFields> {
   let extracted_answer = "";
   let explanation = "[Automatic solving failed -- please solve manually.]";
   let solveError: string | null = null;
@@ -307,7 +311,7 @@ async function solveAndInsertOne(
 
   const extractedLetter = choiceLetter(extracted_answer) ?? choiceLetter(q.choices[0] ?? "");
   const keyLetter = answerKeyMap.get(q.original_question_number);
-  let verification_status: "match" | "mismatch" | "unverified" | "no_answer_key" = "unverified";
+  let verification_status: SolvedFields["verification_status"] = "unverified";
   let verification_notes: string | null = solveError ? `Solving failed: ${solveError}` : null;
   if (solveError) {
     verification_status = "unverified";
@@ -330,6 +334,35 @@ async function solveAndInsertOne(
 
   const matchedChoice = q.choices.find((c) => choiceLetter(c) === (keyLetter ?? extractedLetter));
 
+  return {
+    extracted_answer,
+    claude_solved_answer: extracted_answer,
+    answer: matchedChoice ?? extracted_answer,
+    explanation,
+    verification_status,
+    verification_notes,
+  };
+}
+
+// Solves one question end-to-end and inserts its draft_questions row
+// immediately -- shared by both the background text-only batch and the
+// single synchronous needs-image call. `dedupKeys` is the set of
+// "original_test|original_question_number" pairs that already exist in the
+// published `questions` table, so an admin re-importing the same test twice
+// gets a clear warning instead of a silent duplicate.
+async function solveAndInsertOne(
+  db: SupabaseClient,
+  batchId: string,
+  q: QuestionBoundary,
+  pagePdfs: string[],
+  sourceLabel: string | null,
+  originalTest: string | null,
+  answerKeyMap: Map<number, string>,
+  hasAnswerKey: boolean,
+  dedupKeys: Set<string>,
+): Promise<void> {
+  const fields = await solveAndBuildFields(q, pagePdfs, originalTest, answerKeyMap, hasAnswerKey, dedupKeys);
+
   const row = {
     batch_id: batchId,
     title: q.title,
@@ -339,14 +372,9 @@ async function solveAndInsertOne(
     question: q.question,
     choices: q.choices,
     tags: q.tags ?? [],
-    extracted_answer,
-    claude_solved_answer: extracted_answer,
-    answer: matchedChoice ?? extracted_answer,
-    explanation,
+    ...fields,
     needs_image: q.needs_image,
     image_alt: q.needs_image ? q.image_alt : null,
-    verification_status,
-    verification_notes,
     original_test: originalTest ?? null,
     original_question_number: q.original_question_number,
     source_reference: sourceLabel ? `${sourceLabel} #${q.original_question_number}` : null,
@@ -431,17 +459,61 @@ Deno.serve(async (req: Request) => {
   const { data: isAdmin, error: adminErr } = await callerClient.rpc("is_admin");
   if (adminErr || !isAdmin) return json({ error: "Admin access required" }, 403);
 
-  let payload: { batch_id?: string };
+  let payload: { batch_id?: string; redo_draft_id?: number };
   try {
     payload = await req.json();
   } catch {
     return json({ error: "Invalid JSON body" }, 400);
   }
 
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Redo path -- re-solves exactly one already-inserted draft_questions row
+  // in place (e.g. to fix a bad LaTeX delimiter or an answer-key mismatch)
+  // without touching the rest of the batch. Independent of the batch's
+  // overall status, since the batch may already be 'completed'.
+  if (payload.redo_draft_id) {
+    const { data: draft, error: draftErr } = await db
+      .from("draft_questions")
+      .select("*")
+      .eq("id", payload.redo_draft_id)
+      .single();
+    if (draftErr || !draft) return json({ error: `Draft question not found: ${draftErr?.message}` }, 404);
+
+    const { data: batch, error: batchErr } = await db
+      .from("import_batches")
+      .select("*")
+      .eq("id", draft.batch_id)
+      .single();
+    if (batchErr || !batch) return json({ error: `Import batch not found: ${batchErr?.message}` }, 404);
+
+    const boundaries = (batch.boundaries_json ?? []) as QuestionBoundary[];
+    const q = boundaries.find((b) => b.original_question_number === draft.original_question_number);
+    if (!q) return json({ error: "Original question data is no longer on this batch -- cannot redo automatically." }, 404);
+
+    const answerKeyMap = batch.answer_key ? parseAnswerKey(batch.answer_key as string) : new Map<number, string>();
+    const hasAnswerKey = !!batch.answer_key;
+
+    let dedupKeys = new Set<string>();
+    if (batch.original_test) {
+      const { data: existingQs } = await db
+        .from("questions")
+        .select("original_question_number")
+        .eq("original_test", batch.original_test);
+      dedupKeys = new Set((existingQs ?? []).map((r) => `${batch.original_test}|${r.original_question_number}`));
+    }
+
+    const pagePdfs = q.needs_image ? await loadPagePdfs(db, batch.source_pdf_path ?? null) : [];
+    const fields = await solveAndBuildFields(q, pagePdfs, batch.original_test ?? null, answerKeyMap, hasAnswerKey, dedupKeys);
+
+    const { error: updateErr } = await db.from("draft_questions").update(fields).eq("id", draft.id);
+    if (updateErr) return json({ error: `Failed to update question: ${updateErr.message}` }, 500);
+
+    return json({ redone: true, draft_id: draft.id, ...fields }, 200);
+  }
+
   const { batch_id } = payload;
   if (!batch_id) return json({ error: "batch_id is required" }, 400);
-
-  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   const { data: batch, error: batchErr } = await db
     .from("import_batches")
