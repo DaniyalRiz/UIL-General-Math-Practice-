@@ -2611,7 +2611,13 @@ function ReviewImportsPanel({ authUser }) {
     // Self-heal any batch abandoned mid-run (e.g. the admin closed this tab
     // partway through) -- otherwise it would sit in 'processing' forever and
     // permanently block the "one active import at a time" guardrail below.
-    await _supabase.rpc('reap_stale_import_batches').catch(() => {});
+    // Capped at 8s so a slow/hung reap call can never silently freeze the
+    // whole import flow -- if it times out, the actual upload below still
+    // proceeds, and the real guardrail error (if any) will surface normally.
+    await Promise.race([
+      _supabase.rpc('reap_stale_import_batches').catch(() => {}),
+      new Promise(resolve => setTimeout(resolve, 8000)),
+    ]);
     try {
       const dataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
