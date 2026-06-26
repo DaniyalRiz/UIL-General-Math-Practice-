@@ -2733,6 +2733,48 @@ function ReviewImportsPanel({ authUser }) {
       return { ...r, choices };
     }));
   };
+
+  // Lets the admin attach a diagram directly on a needs_image card instead of
+  // publishing first and switching to the question editor's upload. Uploads
+  // straight to question-images under a draft-scoped path (rowKey, not a
+  // final question id, since drafts don't have one yet) -- publishing later
+  // just reads r.image as-is, same as any other manually attached image.
+  const uploadDraftDiagram = async (rowKey, file) => {
+    if (!file) return;
+    if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      updateRow(rowKey, '_imageUploadMsg', 'Please choose a PNG, JPEG, WEBP, or GIF image.');
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      updateRow(rowKey, '_imageUploadMsg', 'Image is too large. Please use a file under 5 MB.');
+      return;
+    }
+    updateRow(rowKey, '_imageUploading', true);
+    updateRow(rowKey, '_imageUploadMsg', '');
+
+    const resized = await resizeImageForUpload(file);
+    if (resized.size > MAX_IMAGE_BYTES) {
+      updateRow(rowKey, '_imageUploading', false);
+      updateRow(rowKey, '_imageUploadMsg', 'Image is still too large after resizing. Please use a smaller file.');
+      return;
+    }
+
+    const ext = (resized.name.split('.').pop() || 'png').toLowerCase();
+    const path = `draft-${rowKey}/diagram-${Date.now()}.${ext}`;
+    const { error } = await _supabase.storage
+      .from('question-images')
+      .upload(path, resized, { upsert: true, contentType: resized.type });
+
+    updateRow(rowKey, '_imageUploading', false);
+    if (error) {
+      updateRow(rowKey, '_imageUploadMsg', error.message || 'Image upload failed.');
+      return;
+    }
+
+    const { data } = _supabase.storage.from('question-images').getPublicUrl(path);
+    updateRow(rowKey, 'image', data.publicUrl);
+    updateRow(rowKey, '_imageUploadMsg', 'Diagram uploaded and attached.');
+  };
   const setStatus = (key, status) => {
     updateRow(key, '_status', status);
     const row = draftRows.find(r => r._key === key);
@@ -3032,13 +3074,27 @@ function ReviewImportsPanel({ authUser }) {
                   </div>
                 )}
                 {r.needs_image && !r.image_pending_filename && (
-                  <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-700 p-3 bg-amber-50 dark:bg-amber-500/10">
-                    <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">⚠ Diagram needed (not auto-cropped yet)</p>
-                    <p className="text-xs text-amber-700 dark:text-amber-400">{r.image_alt || 'No description provided.'}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                      Either reject this question for now, or publish it and attach the diagram afterward from the question editor's image upload.
-                    </p>
-                  </div>
+                  r.image ? (
+                    <div className="rounded-xl border border-emerald-300 dark:border-emerald-700 p-3 bg-emerald-50 dark:bg-emerald-500/10">
+                      <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-2">✓ Diagram attached</p>
+                      <img src={r.image} alt={r.image_alt || 'Diagram preview'} className="max-w-full max-h-40 rounded-lg border border-slate-200 dark:border-slate-700 bg-white" />
+                      <label className="mt-2 inline-block text-xs font-semibold text-blue-600 dark:text-blue-400 cursor-pointer hover:underline">
+                        Replace image
+                        <input type="file" accept="image/*" className="hidden" onChange={e=>uploadDraftDiagram(r._key, e.target.files?.[0])} />
+                      </label>
+                      {r._imageUploadMsg && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{r._imageUploadMsg}</p>}
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-amber-300 dark:border-amber-700 p-3 bg-amber-50 dark:bg-amber-500/10">
+                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">⚠ Diagram needed (not auto-cropped yet)</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-400 mb-2">{r.image_alt || 'No description provided.'}</p>
+                      <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white cursor-pointer">
+                        {r._imageUploading ? 'Uploading…' : 'Upload diagram'}
+                        <input type="file" accept="image/*" className="hidden" disabled={r._imageUploading} onChange={e=>uploadDraftDiagram(r._key, e.target.files?.[0])} />
+                      </label>
+                      {r._imageUploadMsg && <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{r._imageUploadMsg}</p>}
+                    </div>
+                  )
                 )}
               </div>
 

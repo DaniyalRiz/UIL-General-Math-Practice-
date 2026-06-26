@@ -49,7 +49,13 @@ const SOLVE_TOOL = {
     type: "object",
     properties: {
       extracted_answer: { type: "string", description: "The correct choice, exactly matching one entry in choices" },
-      explanation: { type: "string", description: "Concise worked solution in LaTeX, at most 2-3 sentences -- the key steps and final answer only, not a full essay" },
+      explanation: {
+        type: "string",
+        maxLength: 500,
+        description:
+          "Concise worked solution, at most 2-3 sentences -- the key steps and final answer only, not a full essay. " +
+          "Use \\( ... \\) for inline math and \\[ ... \\] for display math (never $ or $$) -- the renderer only recognizes backslash delimiters.",
+      },
     },
     required: ["extracted_answer", "explanation"],
     additionalProperties: false,
@@ -240,8 +246,9 @@ async function solveQuestion(
       `Question ${q.original_question_number}: ${q.question}\n\n` +
       `Choices:\n${q.choices.join("\n")}\n\n` +
       (q.needs_image && pagePdfs[q._pageIndex] ? "The PDF page is attached above because this question depends on a diagram -- look at it carefully.\n" : "") +
-      `Set extracted_answer to exactly one of the choices above, and explanation to a brief worked solution in LaTeX -- ` +
-      `at most 2-3 sentences covering the key steps and final answer, not a full essay.`,
+      `Set extracted_answer to exactly one of the choices above, and explanation to a brief worked solution -- ` +
+      `at most 2-3 sentences covering the key steps and final answer, not a full essay. ` +
+      `Write any math using \\( ... \\) for inline and \\[ ... \\] for display -- never $ or $$, which the renderer will show as literal text.`,
   });
 
   const { stopReason, toolInput } = await withTimeout((signal) =>
