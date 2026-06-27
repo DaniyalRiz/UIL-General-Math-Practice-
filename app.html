@@ -2548,6 +2548,21 @@ async function cropAndResizeAvatar(file, maxDim = MAX_AVATAR_DIMENSION) {
   return new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
 }
 
+// supabase-js's FunctionsHttpError.message is always the hardcoded string
+// "Edge Function returned a non-2xx status code" -- it never contains the
+// function's actual error text, regardless of what the function returned.
+// The real body lives on error.context (the raw Response), which has to be
+// read and parsed separately to get anything useful to show or branch on.
+async function edgeFunctionErrorMessage(error) {
+  if (error?.context && typeof error.context.json === 'function') {
+    try {
+      const body = await error.context.clone().json();
+      if (body?.error) return body.error;
+    } catch (e) {}
+  }
+  return error?.message || String(error);
+}
+
 // ── Review Imports: load a locally-extracted draft JSON (questions pulled from a
 // PDF by Claude in a separate session), preview each with real LaTeX, edit/approve/
 // reject per question, then publish only the approved ones in one batched write.
@@ -2687,7 +2702,7 @@ function ReviewImportsPanel({ authUser }) {
   const continueTranscription = async (batchId) => {
     try {
       const { data, error } = await _supabase.functions.invoke('import-test-pdf', { body: { batch_id: batchId } });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
 
       if (data.status === 'transcribed') {
@@ -2754,7 +2769,7 @@ function ReviewImportsPanel({ authUser }) {
       const { data, error } = await _supabase.functions.invoke('extract-answer-key', {
         body: { file_base64, media_type: file.type },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
       setPdfAnswerKey(data.answer_key_text || '');
       setAnswerKeyExtractMsg('Answer key extracted — review it below before transcribing.');
@@ -2800,7 +2815,7 @@ function ReviewImportsPanel({ authUser }) {
           answer_key: pdfAnswerKey || null,
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
 
       // Set as soon as a batch exists, regardless of how far this first call
@@ -2854,7 +2869,7 @@ function ReviewImportsPanel({ authUser }) {
   const continueSolving = async (batchId) => {
     try {
       const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { batch_id: batchId } });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
 
       await mergeNewDraftRows(batchId);
@@ -3074,7 +3089,7 @@ function ReviewImportsPanel({ authUser }) {
     updateRow(key, '_redoMsg', '');
     try {
       const { data, error } = await _supabase.functions.invoke('solve-pdf-questions', { body: { redo_draft_id: draftId } });
-      if (error) throw error;
+      if (error) throw new Error(await edgeFunctionErrorMessage(error));
       if (data?.error) throw new Error(data.error);
       updateRow(key, 'answer', data.answer);
       updateRow(key, 'explanation', data.explanation);
