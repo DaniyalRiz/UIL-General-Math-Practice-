@@ -2572,6 +2572,12 @@ function ReviewImportsPanel({ authUser }) {
 
   useEffect(() => () => clearTimeout(pdfPollRef.current), []);
 
+  // Async solving (background concurrency + one-at-a-time needs_image calls)
+  // lands draft rows in whatever order they finish, not test order -- this
+  // keeps the review cards sorted to match the actual printed test instead.
+  const byOriginalQuestionNumber = (a, b) =>
+    (Number(a.original_question_number) || 0) - (Number(b.original_question_number) || 0);
+
   const blankDraftRow = () => ({
     title: '', topic: 'Algebra 1 & 2', difficulty: 'Easy', source: '',
     question: '', choices: ['(A) ', '(B) ', '(C) ', '(D) ', '(E) '],
@@ -2605,7 +2611,7 @@ function ReviewImportsPanel({ authUser }) {
         _key: crypto.randomUUID(),
         _status: 'pending', // 'pending' | 'approved' | 'rejected' | 'published'
         _publishError: '',
-      })));
+      })).sort(byOriginalQuestionNumber));
     };
     reader.readAsText(file);
   };
@@ -2802,7 +2808,7 @@ function ReviewImportsPanel({ authUser }) {
     setDraftRows(prev => {
       const known = new Set(prev.map(r => r._draftId).filter(Boolean));
       const fresh = drafts.filter(r => !known.has(r.id)).map(draftQuestionRowToLocal);
-      return fresh.length ? [...prev, ...fresh] : prev;
+      return fresh.length ? [...prev, ...fresh].sort(byOriginalQuestionNumber) : prev;
     });
   };
 
