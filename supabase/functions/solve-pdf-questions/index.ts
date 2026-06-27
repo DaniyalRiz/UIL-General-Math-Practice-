@@ -415,7 +415,12 @@ async function solveAndInsertOne(
   if (insertErr) throw new Error(`Failed to insert question ${q.original_question_number}: ${insertErr.message}`);
 }
 
-// Fired once via EdgeRuntime.waitUntil on the first call for a batch.
+// Fired once via EdgeRuntime.waitUntil on the first call for a batch. Owns
+// clearing the lease itself once it's truly done -- the calling request
+// returns long before this background work finishes, so if the request's
+// own `finally` cleared the lease immediately, a cron tick landing in that
+// gap could re-claim the batch and kick off a second, overlapping solve for
+// questions this run hasn't inserted yet.
 async function solveTextOnlyBatch(
   db: SupabaseClient,
   batchId: string,
@@ -430,6 +435,7 @@ async function solveTextOnlyBatch(
     solveAndInsertOne(db, batchId, q, [], sourceLabel, originalTest, answerKeyMap, hasAnswerKey, dedupKeys)
   );
   await finalizeIfDone(db, batchId);
+  await db.from("import_batches").update({ lease_until: null }).eq("id", batchId);
 }
 
 // Checks whether every boundary now has a matching draft_questions row, and
@@ -475,17 +481,33 @@ Deno.serve(async (req: Request) => {
     return json({ error: "ANTHROPIC_API_KEY is not configured for this project" }, 500);
   }
 
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Two ways to be authorized: an interactive admin session (browser), or
+  // the cron tick's shared secret (no admin session exists for a
+  // server-triggered call). The secret itself is never embedded in this
+  // file -- it's fetched from Vault at request time and compared, so
+  // there's nothing here to leak by reading the source.
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+  const cronSecretHeader = req.headers.get("x-cron-secret");
+  let isTrustedCron = false;
+  if (cronSecretHeader) {
+    const { data: expectedSecret } = await db.rpc("internal_get_secret", { p_name: "cron_internal_secret" });
+    isTrustedCron = !!expectedSecret && cronSecretHeader === expectedSecret;
+  }
 
-  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userErr } = await callerClient.auth.getUser();
-  if (userErr || !userData?.user) return json({ error: "Invalid session" }, 401);
+  if (!isTrustedCron) {
+    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
 
-  const { data: isAdmin, error: adminErr } = await callerClient.rpc("is_admin");
-  if (adminErr || !isAdmin) return json({ error: "Admin access required" }, 403);
+    const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await callerClient.auth.getUser();
+    if (userErr || !userData?.user) return json({ error: "Invalid session" }, 401);
+
+    const { data: isAdmin, error: adminErr } = await callerClient.rpc("is_admin");
+    if (adminErr || !isAdmin) return json({ error: "Admin access required" }, 403);
+  }
 
   let payload: { batch_id?: string; redo_draft_id?: number };
   try {
@@ -493,8 +515,6 @@ Deno.serve(async (req: Request) => {
   } catch {
     return json({ error: "Invalid JSON body" }, 400);
   }
-
-  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
   // Redo path -- re-solves exactly one already-inserted draft_questions row
   // in place (e.g. to fix a bad LaTeX delimiter or an answer-key mismatch)
@@ -547,14 +567,26 @@ Deno.serve(async (req: Request) => {
   // violation on insert, a transient DB error, etc.) crashes the function
   // uncaught and the client only ever sees a generic "non-2xx status code"
   // with no real message, since Deno's default error response carries no
-  // JSON `error` field for the client to read.
+  // JSON `error` field for the client to read. The `finally` always releases
+  // the lease claimed below, so neither a normal return nor a thrown error
+  // can leave a batch stuck un-claimable for the rest of the lease window.
+  // Set true only when a background fan-out is actually kicked off below --
+  // that task outlives this request and owns clearing the lease itself, so
+  // `finally` must not race it.
+  let backgroundKickedOff = false;
   try {
-    const { data: batch, error: batchErr } = await db
-      .from("import_batches")
-      .select("*")
-      .eq("id", batch_id)
-      .single();
-    if (batchErr || !batch) return json({ error: `Import batch not found: ${batchErr?.message}` }, 404);
+    // Atomic claim -- the single guard against the browser's poll loop and
+    // a cron tick (or two overlapping cron ticks) both firing a paid Claude
+    // call for the same batch at the same time. A null result here only
+    // means "someone else currently holds it"; existence is checked
+    // separately below so the two cases get distinct, useful error messages.
+    const { data: batch, error: claimErr } = await db.rpc("claim_import_batch", { p_batch_id: batch_id, p_lease_minutes: 3 });
+    if (claimErr) return json({ error: `Failed to claim batch: ${claimErr.message}` }, 500);
+    if (!batch) {
+      const { data: exists } = await db.from("import_batches").select("id").eq("id", batch_id).maybeSingle();
+      if (!exists) return json({ error: `Import batch not found: ${batch_id}` }, 404);
+      return json({ error: "This batch is currently being processed by another request. Try again shortly." }, 409);
+    }
 
     if (batch.status !== "transcribed" && batch.status !== "processing") {
       return json({ error: `Batch is in status '${batch.status}'. Nothing to solve.` }, 409);
@@ -594,6 +626,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (isFirstCall && remainingTextOnly.length > 0) {
+      backgroundKickedOff = true;
       // @ts-ignore -- EdgeRuntime is a Supabase Edge Functions global, typed by the
       // jsr:@supabase/functions-js/edge-runtime.d.ts import at the top of this file.
       EdgeRuntime.waitUntil(
@@ -644,5 +677,9 @@ Deno.serve(async (req: Request) => {
     const message = err instanceof Error ? err.message : String(err);
     await markFailed(db, batch_id, message);
     return json({ error: message }, 500);
+  } finally {
+    if (!backgroundKickedOff) {
+      await db.from("import_batches").update({ lease_until: null }).eq("id", batch_id);
+    }
   }
 });
