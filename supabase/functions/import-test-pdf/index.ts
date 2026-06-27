@@ -334,7 +334,7 @@ async function processNextPage(
 
 async function startBatch(
   db: SupabaseClient,
-  userId: string,
+  userId: string | null,
   pdf_base64: string,
   source_label: string | null,
   original_test: string | null,
@@ -389,18 +389,39 @@ Deno.serve(async (req: Request) => {
     return json({ error: "ANTHROPIC_API_KEY is not configured for this project" }, 500);
   }
 
+  // Service role for the actual writes -- RLS on these tables is admin-only anyway,
+  // but we verify admin status (or the cron secret) below before doing anything.
+  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+  // Two ways to be authorized: an interactive admin session (browser), or
+  // the cron tick's shared secret (no admin session exists for a
+  // server-triggered call). The secret itself is never embedded in this
+  // file -- it's fetched from Vault at request time and compared. The cron
+  // path only ever sends a batch_id (it has no PDF bytes to upload), so it
+  // naturally can't reach the fresh-upload branch below.
   const authHeader = req.headers.get("Authorization");
-  if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
+  const cronSecretHeader = req.headers.get("x-cron-secret");
+  let isTrustedCron = false;
+  if (cronSecretHeader) {
+    const { data: expectedSecret } = await db.rpc("internal_get_secret", { p_name: "cron_internal_secret" });
+    isTrustedCron = !!expectedSecret && cronSecretHeader === expectedSecret;
+  }
 
-  // Verify the caller is an admin using THEIR OWN jwt -- never trust a client-claimed role.
-  const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: userData, error: userErr } = await callerClient.auth.getUser();
-  if (userErr || !userData?.user) return json({ error: "Invalid session" }, 401);
+  let userId: string | null = null;
+  if (!isTrustedCron) {
+    if (!authHeader) return json({ error: "Missing Authorization header" }, 401);
 
-  const { data: isAdmin, error: adminErr } = await callerClient.rpc("is_admin");
-  if (adminErr || !isAdmin) return json({ error: "Admin access required" }, 403);
+    // Verify the caller is an admin using THEIR OWN jwt -- never trust a client-claimed role.
+    const callerClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userErr } = await callerClient.auth.getUser();
+    if (userErr || !userData?.user) return json({ error: "Invalid session" }, 401);
+
+    const { data: isAdmin, error: adminErr } = await callerClient.rpc("is_admin");
+    if (adminErr || !isAdmin) return json({ error: "Admin access required" }, 403);
+    userId = userData.user.id;
+  }
 
   let payload: {
     pdf_base64?: string;
@@ -415,19 +436,21 @@ Deno.serve(async (req: Request) => {
     return json({ error: "Invalid JSON body" }, 400);
   }
 
-  // Service role for the actual writes -- RLS on these tables is admin-only anyway,
-  // but we've already verified admin status above against the caller's own session.
-  const db = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
-  try {
-    if (payload.batch_id) {
-      // Continuation call -- transcribe the next page of an already-started batch.
-      const { data: batch, error: batchErr } = await db
-        .from("import_batches")
-        .select("*")
-        .eq("id", payload.batch_id)
-        .single();
-      if (batchErr || !batch) return json({ error: `Import batch not found: ${batchErr?.message}` }, 404);
+  if (payload.batch_id) {
+    // Continuation call -- transcribe the next page of an already-started
+    // batch. Claimed via the same lease as solve-pdf-questions, so the
+    // browser's poll loop and a cron tick (or two overlapping cron ticks)
+    // can never both transcribe the same page and pay for it twice.
+    let leaseHeld = true;
+    try {
+      const { data: batch, error: claimErr } = await db.rpc("claim_import_batch", { p_batch_id: payload.batch_id, p_lease_minutes: 3 });
+      if (claimErr) return json({ error: `Failed to claim batch: ${claimErr.message}` }, 500);
+      if (!batch) {
+        leaseHeld = false;
+        const { data: exists } = await db.from("import_batches").select("id").eq("id", payload.batch_id).maybeSingle();
+        if (!exists) return json({ error: `Import batch not found: ${payload.batch_id}` }, 404);
+        return json({ error: "This batch is currently being processed by another request. Try again shortly." }, 409);
+      }
       if (batch.status !== "processing") {
         return json({ error: `Batch is in status '${batch.status}'. Nothing to transcribe.` }, 409);
       }
@@ -436,9 +459,19 @@ Deno.serve(async (req: Request) => {
       }
       const result = await processNextPage(db, batch.id, null, batch.pages_total, batch.next_page_index);
       return json(result, 202);
+    } catch (err) {
+      return json({ error: err instanceof Error ? err.message : String(err) }, 500);
+    } finally {
+      if (leaseHeld) {
+        await db.from("import_batches").update({ lease_until: null }).eq("id", payload.batch_id);
+      }
     }
+  }
 
-    // First call -- create the batch and transcribe page 0.
+  try {
+    // First call -- create the batch and transcribe page 0. Browser-only:
+    // the cron path never reaches here since it has no PDF bytes to upload,
+    // only ever continuing an existing batch via batch_id above.
     const { pdf_base64, source_label, original_test, answer_key } = payload;
     if (!pdf_base64) return json({ error: "pdf_base64 is required" }, 400);
 
@@ -456,7 +489,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const result = await startBatch(db, userData.user.id, pdf_base64, source_label ?? null, original_test ?? null, answer_key ?? null);
+    const result = await startBatch(db, userId, pdf_base64, source_label ?? null, original_test ?? null, answer_key ?? null);
     return json(result, 202);
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : String(err) }, 500);
