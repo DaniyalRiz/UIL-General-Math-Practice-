@@ -543,95 +543,106 @@ Deno.serve(async (req: Request) => {
   const { batch_id } = payload;
   if (!batch_id) return json({ error: "batch_id is required" }, 400);
 
-  const { data: batch, error: batchErr } = await db
-    .from("import_batches")
-    .select("*")
-    .eq("id", batch_id)
-    .single();
-  if (batchErr || !batch) return json({ error: `Import batch not found: ${batchErr?.message}` }, 404);
+  // Wrapped end-to-end -- without this, any unexpected throw (a constraint
+  // violation on insert, a transient DB error, etc.) crashes the function
+  // uncaught and the client only ever sees a generic "non-2xx status code"
+  // with no real message, since Deno's default error response carries no
+  // JSON `error` field for the client to read.
+  try {
+    const { data: batch, error: batchErr } = await db
+      .from("import_batches")
+      .select("*")
+      .eq("id", batch_id)
+      .single();
+    if (batchErr || !batch) return json({ error: `Import batch not found: ${batchErr?.message}` }, 404);
 
-  if (batch.status !== "transcribed" && batch.status !== "processing") {
-    return json({ error: `Batch is in status '${batch.status}'. Nothing to solve.` }, 409);
-  }
-  const boundaries = (batch.boundaries_json ?? []) as QuestionBoundary[];
-  if (boundaries.length === 0) {
-    return json({ error: "Batch has no transcribed questions to solve" }, 409);
-  }
+    if (batch.status !== "transcribed" && batch.status !== "processing") {
+      return json({ error: `Batch is in status '${batch.status}'. Nothing to solve.` }, 409);
+    }
+    const boundaries = (batch.boundaries_json ?? []) as QuestionBoundary[];
+    if (boundaries.length === 0) {
+      return json({ error: "Batch has no transcribed questions to solve" }, 409);
+    }
 
-  const isFirstCall = batch.status === "transcribed";
-  if (isFirstCall) {
-    await db.from("import_batches").update({ status: "processing" }).eq("id", batch_id);
-  }
+    const isFirstCall = batch.status === "transcribed";
+    if (isFirstCall) {
+      await db.from("import_batches").update({ status: "processing" }).eq("id", batch_id);
+    }
 
-  const { data: existingDrafts } = await db
-    .from("draft_questions")
-    .select("original_question_number")
-    .eq("batch_id", batch_id);
-  const solvedNumbers = new Set((existingDrafts ?? []).map((r) => r.original_question_number));
-  const remaining = boundaries.filter((b) => !solvedNumbers.has(b.original_question_number));
-  const remainingTextOnly = remaining.filter((b) => !b.needs_image);
-  const remainingNeedsImage = remaining.filter((b) => b.needs_image);
-  const totalNeedsImage = boundaries.filter((b) => b.needs_image).length;
-
-  const answerKeyMap = batch.answer_key ? parseAnswerKey(batch.answer_key as string) : new Map<number, string>();
-  const hasAnswerKey = !!batch.answer_key;
-
-  // Dedup check against the published bank -- scoped to this batch's
-  // original_test so it stays a single cheap query.
-  let dedupKeys = new Set<string>();
-  if (batch.original_test) {
-    const { data: existingQs } = await db
-      .from("questions")
+    const { data: existingDrafts } = await db
+      .from("draft_questions")
       .select("original_question_number")
-      .eq("original_test", batch.original_test);
-    dedupKeys = new Set((existingQs ?? []).map((r) => `${batch.original_test}|${r.original_question_number}`));
-  }
+      .eq("batch_id", batch_id);
+    const solvedNumbers = new Set((existingDrafts ?? []).map((r) => r.original_question_number));
+    const remaining = boundaries.filter((b) => !solvedNumbers.has(b.original_question_number));
+    const remainingTextOnly = remaining.filter((b) => !b.needs_image);
+    const remainingNeedsImage = remaining.filter((b) => b.needs_image);
+    const totalNeedsImage = boundaries.filter((b) => b.needs_image).length;
 
-  if (isFirstCall && remainingTextOnly.length > 0) {
-    // @ts-ignore -- EdgeRuntime is a Supabase Edge Functions global, typed by the
-    // jsr:@supabase/functions-js/edge-runtime.d.ts import at the top of this file.
-    EdgeRuntime.waitUntil(
-      solveTextOnlyBatch(
-        db, batch_id, remainingTextOnly,
+    const answerKeyMap = batch.answer_key ? parseAnswerKey(batch.answer_key as string) : new Map<number, string>();
+    const hasAnswerKey = !!batch.answer_key;
+
+    // Dedup check against the published bank -- scoped to this batch's
+    // original_test so it stays a single cheap query.
+    let dedupKeys = new Set<string>();
+    if (batch.original_test) {
+      const { data: existingQs } = await db
+        .from("questions")
+        .select("original_question_number")
+        .eq("original_test", batch.original_test);
+      dedupKeys = new Set((existingQs ?? []).map((r) => `${batch.original_test}|${r.original_question_number}`));
+    }
+
+    if (isFirstCall && remainingTextOnly.length > 0) {
+      // @ts-ignore -- EdgeRuntime is a Supabase Edge Functions global, typed by the
+      // jsr:@supabase/functions-js/edge-runtime.d.ts import at the top of this file.
+      EdgeRuntime.waitUntil(
+        solveTextOnlyBatch(
+          db, batch_id, remainingTextOnly,
+          batch.source_label ?? null, batch.original_test ?? null,
+          answerKeyMap, hasAnswerKey, dedupKeys,
+        ),
+      );
+    }
+
+    if (remainingNeedsImage.length > 0) {
+      const pagePdfs = await loadPagePdfs(db, batch.source_pdf_path ?? null);
+      await solveAndInsertOne(
+        db, batch_id, remainingNeedsImage[0], pagePdfs,
         batch.source_label ?? null, batch.original_test ?? null,
         answerKeyMap, hasAnswerKey, dedupKeys,
-      ),
-    );
+      );
+    }
+
+    await finalizeIfDone(db, batch_id);
+
+    // Heartbeat -- needs_image questions are solved one per call with a paced
+    // delay between them and don't otherwise touch import_batches, so without
+    // this a long multi-image-question batch could go quiet long enough to
+    // look stale even while genuinely progressing.
+    await db.from("import_batches").update({ updated_at: new Date().toISOString() }).eq("id", batch_id);
+
+    const { data: freshBatch } = await db
+      .from("import_batches")
+      .select("status, error_message")
+      .eq("id", batch_id)
+      .single();
+    const { count: solvedCount } = await db
+      .from("draft_questions")
+      .select("*", { count: "exact", head: true })
+      .eq("batch_id", batch_id);
+
+    return json({
+      batch_id,
+      status: freshBatch?.status ?? "processing",
+      error_message: freshBatch?.error_message ?? null,
+      needs_image_total: totalNeedsImage,
+      needs_image_remaining: Math.max(0, remainingNeedsImage.length - 1),
+      questions_solved: solvedCount ?? 0,
+    }, 202);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    await markFailed(db, batch_id, message);
+    return json({ error: message }, 500);
   }
-
-  if (remainingNeedsImage.length > 0) {
-    const pagePdfs = await loadPagePdfs(db, batch.source_pdf_path ?? null);
-    await solveAndInsertOne(
-      db, batch_id, remainingNeedsImage[0], pagePdfs,
-      batch.source_label ?? null, batch.original_test ?? null,
-      answerKeyMap, hasAnswerKey, dedupKeys,
-    );
-  }
-
-  await finalizeIfDone(db, batch_id);
-
-  // Heartbeat -- needs_image questions are solved one per call with a paced
-  // delay between them and don't otherwise touch import_batches, so without
-  // this a long multi-image-question batch could go quiet long enough to
-  // look stale even while genuinely progressing.
-  await db.from("import_batches").update({ updated_at: new Date().toISOString() }).eq("id", batch_id);
-
-  const { data: freshBatch } = await db
-    .from("import_batches")
-    .select("status, error_message")
-    .eq("id", batch_id)
-    .single();
-  const { count: solvedCount } = await db
-    .from("draft_questions")
-    .select("*", { count: "exact", head: true })
-    .eq("batch_id", batch_id);
-
-  return json({
-    batch_id,
-    status: freshBatch?.status ?? "processing",
-    error_message: freshBatch?.error_message ?? null,
-    needs_image_total: totalNeedsImage,
-    needs_image_remaining: Math.max(0, remainingNeedsImage.length - 1),
-    questions_solved: solvedCount ?? 0,
-  }, 202);
 });

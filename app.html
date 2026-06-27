@@ -1004,13 +1004,13 @@ function ProblemView({ q, onClose, onAnswered, prevAnswer, stat, onPrev, onNext,
 
             {/* ── explanation (post-answer) ── */}
             {answered && (
-              <div className={`mx-4 sm:mx-6 mb-5 rounded-xl p-4 border text-sm
+              <div className={`mx-4 sm:mx-6 mb-5 rounded-xl p-4 border text-sm overflow-x-auto
                 ${isCorrect ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30"
                             : "bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/30"}`}>
                 <p className={`font-semibold mb-1.5 ${isCorrect ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"}`}>
                   {isCorrect ? "✓ Correct!" : `✗ Incorrect — Correct: ${correctAnswer}`}{` · Time: ${timer.fmt}`}
                 </p>
-                <p className="text-slate-700 dark:text-slate-300 leading-relaxed"><MathText text={explanationText || ""} /></p>
+                <p className="text-slate-700 dark:text-slate-300 leading-relaxed break-words"><MathText text={explanationText || ""} /></p>
               </div>
             )}
 
@@ -1789,14 +1789,14 @@ function HistoryDetailModal({ row, q, onClose }) {
 
           {/* explanation */}
           {(q.explanation || row.explanation) && (
-            <div className={`rounded-xl p-4 border text-sm
+            <div className={`rounded-xl p-4 border text-sm overflow-x-auto
               ${row.is_correct
                 ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-500/10 dark:border-emerald-500/30'
                 : 'bg-rose-50 border-rose-200 dark:bg-rose-500/10 dark:border-rose-500/30'}`}>
               <p className={`font-semibold mb-1.5 ${row.is_correct ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'}`}>
                 {row.is_correct ? '✓ Correct' : '✗ Incorrect'} · Time: {fmtTime(row.time_taken_ms)}
               </p>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+              <p className="text-slate-700 dark:text-slate-300 leading-relaxed break-words">
                 <MathText text={q.explanation || row.explanation} />
               </p>
             </div>
@@ -3292,23 +3292,23 @@ function ReviewImportsPanel({ authUser }) {
               </div>
 
               {/* Live preview */}
-              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4">
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 overflow-x-auto">
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">Live Preview</p>
-                <p className="font-display text-base font-black text-slate-900 dark:text-white mb-2">{r.title || 'Untitled Question'}</p>
-                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed"><MathText text={r.question || 'Question preview will appear here.'} /></p>
+                <p className="font-display text-base font-black text-slate-900 dark:text-white mb-2 break-words">{r.title || 'Untitled Question'}</p>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed break-words"><MathText text={r.question || 'Question preview will appear here.'} /></p>
                 {matchedImage && <img src={matchedImage.url} alt="Diagram" className="mt-3 max-w-full rounded-lg border border-slate-200 dark:border-slate-700 bg-white" />}
                 <div className="mt-3 space-y-1.5">
                   {r.choices.filter(Boolean).map((c,i)=>(
-                    <div key={i} className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300">
+                    <div key={i} className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-300 break-words">
                       <MathText text={c} />
                     </div>
                   ))}
                 </div>
                 {r.answer && (
-                  <p className="mt-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">Answer: <MathText text={r.answer} /></p>
+                  <p className="mt-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400 break-words">Answer: <MathText text={r.answer} /></p>
                 )}
                 {r.explanation && (
-                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300"><MathText text={r.explanation} /></p>
+                  <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 break-words"><MathText text={r.explanation} /></p>
                 )}
               </div>
             </div>
