@@ -2570,6 +2570,25 @@ function ReviewImportsPanel({ authUser }) {
   const [pdfTranscribedBatchId, setPdfTranscribedBatchId] = useState(null);
   const pdfPollRef = useRef(null);
 
+  // Mirrors localStorage so a reload can find an in-progress batch again --
+  // null once a batch reaches a terminal state (completed/needs_attention/
+  // failed/cancelled), set any time one is actively transcribing/solving or
+  // sitting in 'transcribed' waiting for "Generate Answers".
+  const ACTIVE_BATCH_KEY = 'active_import_batch_id';
+  const [activeBatchId, setActiveBatchIdState] = useState(null);
+  const setActiveBatchId = (id) => {
+    setActiveBatchIdState(id);
+    try {
+      if (id) localStorage.setItem(ACTIVE_BATCH_KEY, id);
+      else localStorage.removeItem(ACTIVE_BATCH_KEY);
+    } catch (e) {}
+  };
+  // Populated only by the on-mount resume check below -- drives the
+  // "Resume active import" banner. Distinct from activeBatchId so a fresh
+  // import the admin just started in this same load doesn't also show a
+  // redundant "resume" banner on top of its own inline progress message.
+  const [resumeBannerInfo, setResumeBannerInfo] = useState(null);
+
   useEffect(() => () => clearTimeout(pdfPollRef.current), []);
 
   // Async solving (background concurrency + one-at-a-time needs_image calls)
@@ -2674,6 +2693,7 @@ function ReviewImportsPanel({ authUser }) {
       if (data.status === 'transcribed') {
         setPdfImporting(false);
         setPdfTranscribedBatchId(batchId);
+        setActiveBatchId(batchId); // still active -- waiting on "Generate Answers", not done yet
         setPdfImportMessage(
           `Transcribed ${data.questions_so_far ?? '?'} question(s) into JSON.` +
           (data.answer_key_found ? ' Answer key detected in the PDF — answers will be checked against it.' : '') +
@@ -2684,6 +2704,7 @@ function ReviewImportsPanel({ authUser }) {
       }
       if (data.status === 'failed') {
         setPdfImporting(false);
+        setActiveBatchId(null);
         setPdfImportMessage('Failed: ' + (data.error_message || 'Unknown error.'));
         return;
       }
@@ -2773,6 +2794,10 @@ function ReviewImportsPanel({ authUser }) {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      // Set as soon as a batch exists, regardless of how far this first call
+      // got -- this is what lets a reload find and resume it.
+      setActiveBatchId(data.batch_id);
+
       if (data.status === 'transcribed') {
         setPdfImporting(false);
         setPdfTranscribedBatchId(data.batch_id);
@@ -2785,6 +2810,7 @@ function ReviewImportsPanel({ authUser }) {
       }
       if (data.status === 'failed') {
         setPdfImporting(false);
+        setActiveBatchId(null);
         setPdfImportMessage('Failed: ' + (data.error_message || 'Unknown error.'));
         return;
       }
@@ -2826,6 +2852,8 @@ function ReviewImportsPanel({ authUser }) {
 
       if (data.status === 'completed' || data.status === 'needs_attention') {
         setPdfImporting(false);
+        setActiveBatchId(null); // terminal -- nothing left to auto-resume, drafts are loaded for review
+        setResumeBannerInfo(null);
         setPdfImportMessage(
           `Solved ${data.questions_solved ?? '?'} question(s)` +
           (data.status === 'needs_attention' ? ' — some need review (answer mismatch, duplicate, or a solve failure), check the badges below.' : ' — all answers matched the key.')
@@ -2834,6 +2862,8 @@ function ReviewImportsPanel({ authUser }) {
       }
       if (data.status === 'failed') {
         setPdfImporting(false);
+        setActiveBatchId(null);
+        setResumeBannerInfo(null);
         setPdfImportMessage('Failed: ' + (data.error_message || 'Unknown error.'));
         return;
       }
@@ -2858,10 +2888,106 @@ function ReviewImportsPanel({ authUser }) {
     if (!batchId) return;
     clearTimeout(pdfPollRef.current);
     setPdfTranscribedBatchId(null);
+    setResumeBannerInfo(null);
     setPdfImporting(true);
     setPdfImportMessage('Solving text-only questions and the first image question…');
     continueSolving(batchId);
   };
+
+  // On mount: if a batch was left active by a previous load (tab reload,
+  // crash, accidental close), find it and pick back up exactly where the
+  // database says it left off -- never from page 1 / question 1, and never
+  // re-calling Claude for anything already in boundaries_json or already
+  // a draft_questions row, since both continuation functions already key
+  // off DB state (next_page_index / which original_question_numbers exist)
+  // rather than anything the browser remembers locally.
+  useEffect(() => {
+    let stale = false;
+    const resume = async () => {
+      let batchId;
+      try { batchId = localStorage.getItem(ACTIVE_BATCH_KEY); } catch (e) { return; }
+      if (!batchId) return;
+
+      // Self-heal first -- if this batch went quiet for 6+ minutes (laptop
+      // closed, tab killed) it gets marked 'failed' here instead of being
+      // resumed as if it were still healthy. Capped so a slow reap call
+      // can't block the rest of the panel from loading.
+      await Promise.race([
+        Promise.resolve(_supabase.rpc('reap_stale_import_batches')).catch(() => {}),
+        new Promise(resolve => setTimeout(resolve, 8000)),
+      ]);
+      if (stale) return;
+
+      const { data: batch } = await _supabase.from('import_batches').select('*').eq('id', batchId).single();
+      if (stale) return;
+      if (!batch || ['failed', 'cancelled'].includes(batch.status)) {
+        setActiveBatchId(null);
+        return;
+      }
+
+      const { data: drafts } = await _supabase.from('draft_questions').select('*').eq('batch_id', batchId);
+      if (stale) return;
+      if (drafts && drafts.length) {
+        setDraftRows(drafts.map(draftQuestionRowToLocal).sort(byOriginalQuestionNumber));
+      }
+      const testName = batch.original_test || batch.source_label || '';
+      setPdfOriginalTest(testName);
+      setPdfAnswerKey(batch.answer_key || '');
+      setActiveBatchIdState(batchId); // already in localStorage; just sync React state
+
+      if (batch.status === 'transcribed') {
+        setPdfTranscribedBatchId(batchId);
+        setResumeBannerInfo({ batchId, testName, stage: 'Ready to solve' });
+        setPdfImportMessage(`Resumed: transcription finished (${(batch.boundaries_json || []).length} question(s)). Click "Generate Answers" to continue.`);
+      } else if (batch.status === 'processing') {
+        const stillTranscribing = (batch.pages_total ?? 0) > 0 && (batch.next_page_index ?? 0) < (batch.pages_total ?? 0);
+        setPdfImporting(true);
+        if (stillTranscribing) {
+          setResumeBannerInfo({ batchId, testName, stage: `Resuming transcription (page ${(batch.next_page_index ?? 0) + 1} of ${batch.pages_total})` });
+          setPdfImportMessage(`Resuming transcription from page ${(batch.next_page_index ?? 0) + 1} of ${batch.pages_total}…`);
+          continueTranscription(batchId);
+        } else {
+          setResumeBannerInfo({ batchId, testName, stage: 'Resuming solving' });
+          setPdfImportMessage('Resuming solving…');
+          continueSolving(batchId);
+        }
+      } else if (batch.status === 'completed' || batch.status === 'needs_attention') {
+        // Nothing left to auto-resume -- just surface what's already staged.
+        setActiveBatchId(null);
+        setPdfImportMessage(`Loaded ${drafts ? drafts.length : 0} previously-solved question(s) for review.`);
+      }
+    };
+    resume();
+    return () => { stale = true; };
+  }, []);
+
+  // Cancel marks the batch 'cancelled' (never deletes draft_questions) and
+  // stops the local poll loop -- anything already solved stays staged for
+  // review exactly as if the batch had completed normally.
+  const cancelActiveImport = async () => {
+    const batchId = activeBatchId;
+    if (!batchId) return;
+    clearTimeout(pdfPollRef.current);
+    setPdfImporting(false);
+    setPdfTranscribedBatchId(null);
+    await _supabase.from('import_batches')
+      .update({ status: 'cancelled', finished_at: new Date().toISOString(), updated_at: new Date().toISOString() })
+      .eq('id', batchId);
+    setActiveBatchId(null);
+    setResumeBannerInfo(null);
+    setPdfImportMessage('Import cancelled. Already-solved questions remain below for review.');
+  };
+
+  // Warns before closing/reloading while a transcribe/solve poll loop is
+  // actually in flight -- progress itself is never lost (it's durable in
+  // import_batches/draft_questions either way), this is purely so the
+  // admin doesn't lose track of where things stood without meaning to.
+  useEffect(() => {
+    if (!pdfImporting) return;
+    const handler = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [pdfImporting]);
 
   const updateRow = (key, field, value) => {
     setDraftRows(prev => prev.map(r => r._key === key ? { ...r, [field]: value } : r));
@@ -3097,6 +3223,26 @@ function ReviewImportsPanel({ authUser }) {
           Load a draft JSON file (extracted from a PDF), review/edit each question with a live preview, then approve
           and publish only the ones you've checked. Nothing is saved to Supabase until you click Publish Approved.
         </p>
+        {resumeBannerInfo && (
+          <div className="mb-4 rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-500/10 p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div>
+              <p className="text-sm font-bold text-amber-800 dark:text-amber-300">
+                Resume active import{resumeBannerInfo.testName ? ` — ${resumeBannerInfo.testName}` : ''}
+              </p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 mt-0.5">{resumeBannerInfo.stage} — picked up automatically from where it left off.</p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button onClick={() => setResumeBannerInfo(null)}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-500/20">
+                Dismiss
+              </button>
+              <button onClick={cancelActiveImport}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white">
+                Cancel active import
+              </button>
+            </div>
+          </div>
+        )}
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 mb-4">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Import from PDF (automatic)</p>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -3125,6 +3271,12 @@ function ReviewImportsPanel({ authUser }) {
               <button onClick={generateAnswers} disabled={pdfImporting}
                 className="px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white">
                 Step 2: Generate Answers
+              </button>
+            )}
+            {activeBatchId && !resumeBannerInfo && (
+              <button onClick={cancelActiveImport}
+                className="px-4 py-2 rounded-lg text-sm font-semibold border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+                Cancel active import
               </button>
             )}
             {pdfImportMessage && (
