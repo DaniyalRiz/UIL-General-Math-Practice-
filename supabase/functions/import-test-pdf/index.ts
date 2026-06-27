@@ -274,7 +274,17 @@ async function processNextPage(
   let detectedAnswerKey: string | null = null;
   let pageError: string | null = null;
   try {
-    const result = await extractBoundariesForPage(pagePdfBase64, pageIndex);
+    let result = await extractBoundariesForPage(pagePdfBase64, pageIndex);
+    // A page coming back with zero questions and no detected answer key is
+    // usually a real blank/cover/instructions page -- but this is a
+    // vision-based judgment call on Claude's part, and it occasionally
+    // misjudges a genuine content page as empty (confirmed: the same PDF
+    // page transcribed fine in a different run). One retry catches that
+    // without meaningfully affecting cost, since it only fires on the rare
+    // empty result, never on every page.
+    if (result.questions.length === 0 && !result.answerKeyText) {
+      result = await extractBoundariesForPage(pagePdfBase64, pageIndex);
+    }
     newQuestions = result.questions;
     detectedAnswerKey = result.answerKeyText;
   } catch (err) {
@@ -429,11 +439,81 @@ Deno.serve(async (req: Request) => {
     original_test?: string;
     answer_key?: string;
     batch_id?: string;
+    redo_page_index?: number;
   };
   try {
     payload = await req.json();
   } catch {
     return json({ error: "Invalid JSON body" }, 400);
+  }
+
+  if (payload.batch_id && payload.redo_page_index !== undefined) {
+    // Recovery path: re-transcribes one specific page of an already-processed
+    // batch whose page came back with fewer questions than it should have
+    // (the empty-page misjudgment the retry above guards against going
+    // forward, but doesn't undo for batches that already hit it). Only ever
+    // adds question numbers not already present in boundaries_json -- never
+    // removes or duplicates anything already transcribed or solved.
+    const { data: batch, error: batchErr } = await db
+      .from("import_batches")
+      .select("*")
+      .eq("id", payload.batch_id)
+      .single();
+    if (batchErr || !batch) return json({ error: `Import batch not found: ${batchErr?.message}` }, 404);
+
+    const pageIndex = payload.redo_page_index;
+    if (pageIndex < 0 || pageIndex >= (batch.pages_total ?? 0)) {
+      return json({ error: `Page index ${pageIndex} is out of range for this batch (pages_total=${batch.pages_total}).` }, 400);
+    }
+
+    const path = batch.source_pdf_path as string | undefined;
+    if (!path) return json({ error: "Original PDF is not available in storage to re-transcribe this page" }, 409);
+    const { data: pdfData, error: dlErr } = await db.storage.from("test-pdfs").download(path);
+    if (dlErr || !pdfData) return json({ error: `Could not re-download source PDF: ${dlErr?.message}` }, 500);
+    const bytes = new Uint8Array(await pdfData.arrayBuffer());
+
+    const srcDoc = await PDFDocument.load(bytes);
+    const newDoc = await PDFDocument.create();
+    const [copiedPage] = await newDoc.copyPages(srcDoc, [pageIndex]);
+    newDoc.addPage(copiedPage);
+    const pagePdfBase64 = encodeBase64(await newDoc.save());
+
+    let result;
+    try {
+      result = await extractBoundariesForPage(pagePdfBase64, pageIndex);
+    } catch (err) {
+      return json({ error: err instanceof Error ? err.message : String(err) }, 500);
+    }
+
+    const existingBoundaries = (batch.boundaries_json ?? []) as QuestionBoundary[];
+    const existingNumbers = new Set(existingBoundaries.map((b) => b.original_question_number));
+    const newQuestions = result.questions.filter((q) => !existingNumbers.has(q.original_question_number));
+    const boundaries = [...existingBoundaries, ...newQuestions];
+
+    const existingAnswerKey = (batch.answer_key as string | null) ?? null;
+    const answerKey = existingAnswerKey || result.answerKeyText;
+
+    // Reopen the batch so solve-pdf-questions picks up the newly-added
+    // questions on the next "Generate Answers" call -- it already only
+    // solves question numbers missing from draft_questions, so this never
+    // re-solves anything already reviewed.
+    await db
+      .from("import_batches")
+      .update({
+        status: "transcribed",
+        boundaries_json: boundaries,
+        questions_total: boundaries.length,
+        answer_key: answerKey,
+        answer_key_found: !!answerKey,
+        finished_at: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", batch.id);
+
+    return json(
+      { batch_id: batch.id, page_index: pageIndex, questions_found: newQuestions.length, questions_total: boundaries.length },
+      200,
+    );
   }
 
   if (payload.batch_id) {

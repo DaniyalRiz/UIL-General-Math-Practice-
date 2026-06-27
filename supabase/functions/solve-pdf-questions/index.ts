@@ -54,7 +54,10 @@ const SOLVE_TOOL = {
         maxLength: 500,
         description:
           "Concise worked solution, at most 2-3 sentences -- the key steps and final answer only, not a full essay. " +
-          "Use \\( ... \\) for inline math and \\[ ... \\] for display math (never $ or $$) -- the renderer only recognizes backslash delimiters.",
+          "Use \\( ... \\) for inline math and \\[ ... \\] for display math (never $ or $$) -- the renderer only recognizes backslash delimiters. " +
+          "Keep each \\[ ... \\] short -- one step per line. Never chain a multi-step derivation (e.g. setup, then " +
+          "substitution, then simplification) into one long \\[ ... \\]; split it into separate short \\[ ... \\] lines instead, " +
+          "so the solution reads as short stacked lines, not one wide line.",
       },
     },
     required: ["extracted_answer", "explanation"],
@@ -253,7 +256,9 @@ async function solveQuestion(
       (q.needs_image && pagePdfs[q._pageIndex] ? "The PDF page is attached above because this question depends on a diagram -- look at it carefully.\n" : "") +
       `Set extracted_answer to exactly one of the choices above, and explanation to a brief worked solution -- ` +
       `at most 2-3 sentences covering the key steps and final answer, not a full essay. ` +
-      `Write any math using \\( ... \\) for inline and \\[ ... \\] for display -- never $ or $$, which the renderer will show as literal text.`,
+      `Write any math using \\( ... \\) for inline and \\[ ... \\] for display -- never $ or $$, which the renderer will show as literal text. ` +
+      `Keep each \\[ ... \\] short, one step per line -- split a multi-step derivation into several short \\[ ... \\] lines ` +
+      `instead of chaining it into one long line.`,
   });
 
   const { stopReason, toolInput } = await withTimeout((signal) =>
@@ -333,7 +338,12 @@ async function solveOnce(
     verification_notes = verification_notes ? `${verification_notes} ${dupeNote}` : dupeNote;
   }
 
-  const matchedChoice = q.choices.find((c) => choiceLetter(c) === (keyLetter ?? extractedLetter));
+  // Always Claude's own pick, never the key's -- `explanation` is Claude's
+  // reasoning for its own answer, so showing the key's choice text here on a
+  // mismatch would pair a "correct-looking" answer with an explanation that
+  // actually argues for a different one. The mismatch badge is the signal
+  // that the key disagrees; the admin decides via Redo or a manual edit.
+  const matchedChoice = q.choices.find((c) => choiceLetter(c) === extractedLetter);
 
   return {
     extracted_answer,
