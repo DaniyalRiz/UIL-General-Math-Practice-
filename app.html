@@ -2731,13 +2731,41 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
       pdfPollRef.current = setTimeout(() => continueTranscription(batchId), PACED_CALL_DELAY_MS);
     } catch (e) {
       const message = e.message || String(e);
-      // The background cron tick claimed this batch first -- not a real
-      // failure, just a lease race. Keep polling instead of giving up; the
-      // batch is still progressing on the cron's own schedule regardless.
-      if (message.includes('currently being processed by another request')) {
-        setPdfImportMessage('Background queue is working on this batch right now… checking again shortly.');
-        pdfPollRef.current = setTimeout(() => continueTranscription(batchId), PACED_CALL_DELAY_MS);
-        return;
+      // Don't trust the error message alone -- a concurrent cron tick can
+      // advance (or even finish) this batch between this call firing and
+      // its response landing, so re-check the batch's actual status and
+      // branch on ground truth instead of guessing from error text. This
+      // catches every "not really a failure" case in one place, not just
+      // the one lease-conflict string this used to special-case.
+      const { data: fresh } = await _supabase.from('import_batches').select('*').eq('id', batchId).single();
+      if (fresh) {
+        if (fresh.status === 'transcribed') {
+          setPdfImporting(false);
+          setPdfTranscribedBatchId(batchId);
+          setActiveBatchId(batchId);
+          setPdfImportMessage(`Transcription already finished (${(fresh.boundaries_json || []).length} question(s)) — click "Generate Answers" below to solve them.`);
+          return;
+        }
+        if (fresh.status === 'processing') {
+          setPdfImportMessage('Background queue is working on this batch right now… checking again shortly.');
+          pdfPollRef.current = setTimeout(() => continueTranscription(batchId), PACED_CALL_DELAY_MS);
+          return;
+        }
+        if (fresh.status === 'completed' || fresh.status === 'needs_attention') {
+          const { data: drafts } = await _supabase.from('draft_questions').select('*').eq('batch_id', batchId);
+          setDraftRows((drafts || []).map(draftQuestionRowToLocal).sort(byOriginalQuestionNumber));
+          setPdfImporting(false);
+          setActiveBatchId(null);
+          setResumeBannerInfo(null);
+          setPdfImportMessage(`This batch already finished (${drafts ? drafts.length : 0} question(s) solved) — loaded for review.`);
+          return;
+        }
+        if (fresh.status === 'failed' || fresh.status === 'cancelled') {
+          setPdfImporting(false);
+          setActiveBatchId(null);
+          setPdfImportMessage('Transcription failed: ' + (fresh.error_message || message));
+          return;
+        }
       }
       setPdfImporting(false);
       setPdfImportMessage('Transcription failed: ' + message);
@@ -2903,12 +2931,35 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
       pdfPollRef.current = setTimeout(() => continueSolving(batchId), delay);
     } catch (e) {
       const message = e.message || String(e);
-      // Same lease race as continueTranscription -- the cron tick got there
-      // first, not a real failure. Keep polling.
-      if (message.includes('currently being processed by another request')) {
-        setPdfImportMessage('Background queue is working on this batch right now… checking again shortly.');
-        pdfPollRef.current = setTimeout(() => continueSolving(batchId), PACED_CALL_DELAY_MS);
-        return;
+      // Same reasoning as continueTranscription's catch block -- re-check
+      // ground truth instead of guessing from error text, since a
+      // concurrent cron tick can finish solving this batch between this
+      // call firing and its response landing.
+      const { data: fresh } = await _supabase.from('import_batches').select('*').eq('id', batchId).single();
+      if (fresh) {
+        if (fresh.status === 'completed' || fresh.status === 'needs_attention') {
+          await mergeNewDraftRows(batchId);
+          setPdfImporting(false);
+          setActiveBatchId(null);
+          setResumeBannerInfo(null);
+          setPdfImportMessage(
+            'Solving already finished' +
+            (fresh.status === 'needs_attention' ? ' — some need review (answer mismatch, duplicate, or a solve failure), check the badges below.' : ' — all answers matched the key.')
+          );
+          return;
+        }
+        if (fresh.status === 'processing' || fresh.status === 'transcribed') {
+          setPdfImportMessage('Background queue is working on this batch right now… checking again shortly.');
+          pdfPollRef.current = setTimeout(() => continueSolving(batchId), PACED_CALL_DELAY_MS);
+          return;
+        }
+        if (fresh.status === 'failed' || fresh.status === 'cancelled') {
+          setPdfImporting(false);
+          setActiveBatchId(null);
+          setResumeBannerInfo(null);
+          setPdfImportMessage('Failed to generate answers: ' + (fresh.error_message || message));
+          return;
+        }
       }
       setPdfImporting(false);
       setPdfImportMessage('Failed to generate answers: ' + message);
