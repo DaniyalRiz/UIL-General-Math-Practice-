@@ -3077,8 +3077,28 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
     setResumeBannerInfo(null);
     setPdfImportMessage(`Loaded ${drafts ? drafts.length : 0} question(s) from "${batch.source_label || batch.original_test || batchId}" for review.`);
     setPastBatches(prev => prev.filter(b => b.id !== batchId));
+    setAllBatches(prev => prev.filter(b => b.id !== batchId));
     await _supabase.from('import_batches').update({ notified_at: new Date().toISOString() }).eq('id', batchId);
     if (onBatchReviewed) onBatchReviewed();
+  };
+
+  // Full history, regardless of notified_at -- a fallback for finding any
+  // batch whose "needs review" flag got cleared without ever actually being
+  // opened (e.g. a past bug that marked everything notified on tab-click).
+  // Collapsed by default since pastBatches above already covers the normal
+  // case; this is for digging up something that fell through that signal.
+  const [allBatches, setAllBatches] = useState([]);
+  const [showAllBatches, setShowAllBatches] = useState(false);
+  const toggleAllBatches = () => {
+    if (!showAllBatches && allBatches.length === 0) {
+      _supabase
+        .from('import_batches')
+        .select('id, source_label, original_test, status, started_at, questions_extracted')
+        .in('status', ['completed', 'needs_attention'])
+        .order('started_at', { ascending: false })
+        .then(({ data }) => setAllBatches(data || []));
+    }
+    setShowAllBatches(s => !s);
   };
 
   // Cancel marks the batch 'cancelled' (never deletes draft_questions) and
@@ -3387,6 +3407,35 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
             </div>
           </div>
         )}
+        <div className="mb-4">
+          <button onClick={toggleAllBatches} className="text-xs font-semibold text-slate-500 dark:text-slate-400 hover:underline">
+            {showAllBatches ? 'Hide all past imports' : 'View all past imports'}
+          </button>
+          {showAllBatches && (
+            <div className="mt-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">
+                All past imports ({allBatches.length}) — includes ones already marked reviewed
+              </p>
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {allBatches.map(b => (
+                  <div key={b.id} className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{b.source_label || b.original_test || b.id}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500">
+                        {b.status === 'needs_attention' ? '⚠ needs attention' : '✓ completed'} · {b.questions_extracted ?? '?'} question(s)
+                        {b.started_at ? ` · ${new Date(b.started_at).toLocaleDateString()}` : ''}
+                      </p>
+                    </div>
+                    <button onClick={() => loadBatchForReview(b.id)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 shrink-0">
+                      Review
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 mb-4">
           <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-3">Import from PDF (automatic)</p>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -3644,7 +3693,7 @@ function AdminQuestionManager({ authUser }) {
   const [message, setMessage] = useState('');
   const [saving, setSaving] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const [adminPanelTab, setAdminPanelTab] = useState('activity');
+  const [adminPanelTab, setAdminPanelTab] = useLocalStorage('admin_panel_tab', 'activity');
   const [showDateOverride, setShowDateOverride] = useState(false);
   const [idLoading, setIdLoading] = useState(false);
   const [questionList, setQuestionList] = useState([]);
@@ -4499,7 +4548,7 @@ function ProfileMenu({ authUser, dark, toggleTheme, signOut, view, setView, tab,
 function App() {
   const [dark, toggleTheme] = useTheme();
   const [authUser, setAuthUser] = useState(null);
-  const [tab, setTab] = useState('problems'); // 'problems' | 'analytics' | 'history' | 'admin'
+  const [tab, setTab] = useLocalStorage('current_tab', 'problems'); // 'problems' | 'analytics' | 'history' | 'admin'
 
   // Auth state listener — use getSession() which reliably restores persisted sessions
   useEffect(() => {
