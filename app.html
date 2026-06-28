@@ -2567,7 +2567,7 @@ async function edgeFunctionErrorMessage(error) {
 // PDF by Claude in a separate session), preview each with real LaTeX, edit/approve/
 // reject per question, then publish only the approved ones in one batched write.
 // Nothing here ever touches Supabase until "Publish Approved" is clicked.
-function ReviewImportsPanel({ authUser }) {
+function ReviewImportsPanel({ authUser, onBatchReviewed }) {
   const [draftRows, setDraftRows] = useState([]);
   const [parseError, setParseError] = useState('');
   const [imageMap, setImageMap] = useState({}); // filename -> { file, url }
@@ -2993,6 +2993,43 @@ function ReviewImportsPanel({ authUser }) {
     return () => { stale = true; };
   }, []);
 
+  // Batches the background queue finished that nobody has actually opened
+  // yet -- distinct from the single localStorage-tracked "active" batch
+  // above, since those handle only the admin's own in-flight import. This
+  // is what the Review Imports tab's notification badge actually points
+  // to: every other finished batch only ever existed as a DB row with no
+  // way to browse into it from here.
+  const [pastBatches, setPastBatches] = useState([]);
+  const refreshPastBatches = () => {
+    _supabase
+      .from('import_batches')
+      .select('id, source_label, original_test, status, started_at, questions_extracted')
+      .in('status', ['completed', 'needs_attention'])
+      .is('notified_at', null)
+      .order('started_at', { ascending: false })
+      .then(({ data }) => setPastBatches(data || []));
+  };
+  useEffect(() => { refreshPastBatches(); }, []);
+
+  // Loads one finished batch's questions into the review grid below, marks
+  // just that batch notified (never the whole list at once), and tells the
+  // parent dashboard to refresh its badge count immediately rather than
+  // waiting for its own 30s poll.
+  const loadBatchForReview = async (batchId) => {
+    const { data: batch } = await _supabase.from('import_batches').select('*').eq('id', batchId).single();
+    if (!batch) return;
+    const { data: drafts } = await _supabase.from('draft_questions').select('*').eq('batch_id', batchId);
+    setDraftRows((drafts || []).map(draftQuestionRowToLocal).sort(byOriginalQuestionNumber));
+    setPdfOriginalTest(batch.original_test || batch.source_label || '');
+    setPdfAnswerKey(batch.answer_key || '');
+    setActiveBatchId(null);
+    setResumeBannerInfo(null);
+    setPdfImportMessage(`Loaded ${drafts ? drafts.length : 0} question(s) from "${batch.source_label || batch.original_test || batchId}" for review.`);
+    setPastBatches(prev => prev.filter(b => b.id !== batchId));
+    await _supabase.from('import_batches').update({ notified_at: new Date().toISOString() }).eq('id', batchId);
+    if (onBatchReviewed) onBatchReviewed();
+  };
+
   // Cancel marks the batch 'cancelled' (never deletes draft_questions) and
   // stops the local poll loop -- anything already solved stays staged for
   // review exactly as if the batch had completed normally.
@@ -3272,6 +3309,30 @@ function ReviewImportsPanel({ authUser }) {
                 className="px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-700 text-white">
                 Cancel active import
               </button>
+            </div>
+          </div>
+        )}
+        {pastBatches.length > 0 && (
+          <div className="mb-4 rounded-xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-500/10 p-4">
+            <p className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-2">
+              {pastBatches.length} import{pastBatches.length === 1 ? '' : 's'} finished and waiting for review
+            </p>
+            <div className="space-y-2">
+              {pastBatches.map(b => (
+                <div key={b.id} className="flex items-center justify-between gap-3 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{b.source_label || b.original_test || b.id}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500">
+                      {b.status === 'needs_attention' ? '⚠ needs attention' : '✓ completed'} · {b.questions_extracted ?? '?'} question(s)
+                      {b.started_at ? ` · ${new Date(b.started_at).toLocaleDateString()}` : ''}
+                    </p>
+                  </div>
+                  <button onClick={() => loadBatchForReview(b.id)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shrink-0">
+                    Review
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
         )}
@@ -3596,15 +3657,6 @@ function AdminQuestionManager({ authUser }) {
 
   const openReviewImports = () => {
     setAdminPanelTab('reviewImports');
-    if (pendingReviewCount > 0) {
-      setPendingReviewCount(0);
-      _supabase
-        .from('import_batches')
-        .update({ notified_at: new Date().toISOString() })
-        .in('status', ['completed', 'needs_attention'])
-        .is('notified_at', null)
-        .then(() => {});
-    }
   };
 
   const normalizeQuestionForForm = (q) => {
@@ -3811,7 +3863,7 @@ function AdminQuestionManager({ authUser }) {
       ) : adminPanelTab === 'bugReports' ? (
         <AdminBugReports authUser={authUser} />
       ) : adminPanelTab === 'reviewImports' ? (
-        <ReviewImportsPanel authUser={authUser} />
+        <ReviewImportsPanel authUser={authUser} onBatchReviewed={refreshPendingReviewCount} />
       ) : adminPanelTab === 'editQuestions' ? (
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
           <div className="p-5 border-b border-slate-200 dark:border-slate-800">
