@@ -3082,6 +3082,17 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
     if (onBatchReviewed) onBatchReviewed();
   };
 
+  // Permanently removes a batch and its draft_questions (cascades via FK) --
+  // for duplicate/unwanted imports cluttering this list. Never touches the
+  // published questions table, regardless of batch status.
+  const deleteBatch = async (batchId, label) => {
+    if (!confirm(`Permanently delete "${label}" and all its draft questions? This cannot be undone.`)) return;
+    await _supabase.from('import_batches').delete().eq('id', batchId);
+    setPastBatches(prev => prev.filter(b => b.id !== batchId));
+    setAllBatches(prev => prev.filter(b => b.id !== batchId));
+    if (onBatchReviewed) onBatchReviewed();
+  };
+
   // Full history, regardless of notified_at -- a fallback for finding any
   // batch whose "needs review" flag got cleared without ever actually being
   // opened (e.g. a past bug that marked everything notified on tab-click).
@@ -3398,10 +3409,16 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
                       {b.started_at ? ` · ${new Date(b.started_at).toLocaleDateString()}` : ''}
                     </p>
                   </div>
-                  <button onClick={() => loadBatchForReview(b.id)}
-                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white shrink-0">
-                    Review
-                  </button>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button onClick={() => loadBatchForReview(b.id)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white">
+                      Review
+                    </button>
+                    <button onClick={() => deleteBatch(b.id, b.source_label || b.original_test || b.id)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+                      Delete
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -3428,10 +3445,16 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
                         {b.started_at ? ` · ${new Date(b.started_at).toLocaleDateString()}` : ''}
                       </p>
                     </div>
-                    <button onClick={() => loadBatchForReview(b.id)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 shrink-0">
-                      Review
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => loadBatchForReview(b.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10">
+                        Review
+                      </button>
+                      <button onClick={() => deleteBatch(b.id, b.source_label || b.original_test || b.id)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
+                        Delete
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
