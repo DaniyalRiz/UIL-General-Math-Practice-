@@ -2522,18 +2522,29 @@ async function resizeImageForUpload(file, { maxDim = MAX_IMAGE_DIMENSION, jpegQu
   return new File([blob], newName, { type: outputType });
 }
 
-// Uploads to a storage bucket, retrying once after a forced session refresh if the first
-// attempt fails with an RLS violation -- this is the signature of a stale access token (the
-// background auto-refresh timer can stall when a tab is backgrounded or the machine sleeps
-// for a while), not an actual permissions problem, since the same admin check elsewhere in
-// the app already confirmed this caller is allowed to be here.
+// Uploads via a raw fetch with a freshly-read access token instead of going through
+// _supabase.storage -- the SDK's storage sub-client is created lazily on first access and
+// can bake in whatever Authorization header existed at that moment (e.g. anon-only, if
+// anything touches .storage before the session finishes loading from localStorage on page
+// load), and never re-reads the session again afterward. Reading the token directly here
+// every call sidesteps that entirely instead of trusting the cached client.
 async function uploadWithSessionRetry(bucket, path, file, options) {
-  let { error } = await _supabase.storage.from(bucket).upload(path, file, options);
-  if (error && /row-level security/i.test(error.message || '')) {
-    await _supabase.auth.refreshSession();
-    ({ error } = await _supabase.storage.from(bucket).upload(path, file, options));
-  }
-  return { error };
+  const { data: { session } } = await _supabase.auth.getSession();
+  if (!session) return { error: { message: 'Not signed in.' } };
+  const headers = {
+    apikey: SUPABASE_ANON_KEY,
+    Authorization: `Bearer ${session.access_token}`,
+    'Content-Type': options?.contentType || file.type || 'application/octet-stream',
+  };
+  if (options?.upsert) headers['x-upsert'] = 'true';
+  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${path}`, {
+    method: 'POST',
+    headers,
+    body: file,
+  });
+  if (res.ok) return { error: null };
+  const body = await res.json().catch(() => ({}));
+  return { error: { message: body.message || body.error || `Upload failed (${res.status})` } };
 }
 
 // Avatars are always a small square photo, never need transparency or crisp vector lines,
