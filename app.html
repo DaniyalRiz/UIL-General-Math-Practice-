@@ -2522,6 +2522,20 @@ async function resizeImageForUpload(file, { maxDim = MAX_IMAGE_DIMENSION, jpegQu
   return new File([blob], newName, { type: outputType });
 }
 
+// Uploads to a storage bucket, retrying once after a forced session refresh if the first
+// attempt fails with an RLS violation -- this is the signature of a stale access token (the
+// background auto-refresh timer can stall when a tab is backgrounded or the machine sleeps
+// for a while), not an actual permissions problem, since the same admin check elsewhere in
+// the app already confirmed this caller is allowed to be here.
+async function uploadWithSessionRetry(bucket, path, file, options) {
+  let { error } = await _supabase.storage.from(bucket).upload(path, file, options);
+  if (error && /row-level security/i.test(error.message || '')) {
+    await _supabase.auth.refreshSession();
+    ({ error } = await _supabase.storage.from(bucket).upload(path, file, options));
+  }
+  return { error };
+}
+
 // Avatars are always a small square photo, never need transparency or crisp vector lines,
 // so unlike resizeImageForUpload above this always crops to a centered square and re-encodes
 // as JPEG -- gives a small, predictable file size regardless of the source image's shape.
@@ -2573,6 +2587,8 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
   const [imageMap, setImageMap] = useState({}); // filename -> { file, url }
   const [publishing, setPublishing] = useState(false);
   const [publishMessage, setPublishMessage] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verifyMessage, setVerifyMessage] = useState('');
   const [pdfFile, setPdfFile] = useState(null);
   const [pdfOriginalTest, setPdfOriginalTest] = useState('');
   const [pdfAnswerKey, setPdfAnswerKey] = useState('');
@@ -2661,6 +2677,67 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
       });
       return next;
     });
+  };
+
+  const fileToBase64 = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+
+  const VERIFY_BATCH_SIZE = 60; // matches verify-draft-questions' MAX_QUESTIONS_PER_CALL
+
+  // Spends a small, bounded amount of API credit re-solving each manually-extracted
+  // question once (no thinking-retry loop) and comparing against the answer already
+  // in the row -- the cheap alternative to running these through the full
+  // transcribe+solve PDF pipeline. Writes verification_status/verification_notes onto
+  // draftRows, which the existing match/mismatch badges already know how to render.
+  const verifyDraftRows = async () => {
+    const candidates = draftRows.filter(r => r._status !== 'published' && r.question.trim() && r.answer.trim());
+    if (!candidates.length) { setVerifyMessage('Nothing to verify -- load questions with a question and answer first.'); return; }
+
+    setVerifying(true);
+    setVerifyMessage('Verifying…');
+    try {
+      const payloadByKey = {};
+      for (const r of candidates) {
+        const entry = { key: r._key, question: r.question, choices: r.choices.filter(Boolean), answer: r.answer };
+        const matchedImage = r.image_pending_filename ? imageMap[r.image_pending_filename] : null;
+        if (matchedImage) {
+          entry.image_base64 = await fileToBase64(matchedImage.file);
+          entry.image_media_type = matchedImage.file.type;
+        }
+        payloadByKey[r._key] = entry;
+      }
+      const allEntries = Object.values(payloadByKey);
+
+      const allResults = [];
+      for (let i = 0; i < allEntries.length; i += VERIFY_BATCH_SIZE) {
+        const chunk = allEntries.slice(i, i + VERIFY_BATCH_SIZE);
+        const { data, error } = await _supabase.functions.invoke('verify-draft-questions', { body: { questions: chunk } });
+        if (error) throw new Error(await edgeFunctionErrorMessage(error));
+        if (data?.error) throw new Error(data.error);
+        allResults.push(...(data.results || []));
+      }
+
+      const resultByKey = {};
+      allResults.forEach(r => { resultByKey[r.key] = r; });
+      setDraftRows(prev => prev.map(r => {
+        const res = resultByKey[r._key];
+        if (!res) return r;
+        return { ...r, verification_status: res.verification_status, verification_notes: res.verification_notes };
+      }));
+
+      const matchCount = allResults.filter(r => r.verification_status === 'match').length;
+      const mismatchCount = allResults.filter(r => r.verification_status === 'mismatch').length;
+      const unverifiedCount = allResults.filter(r => r.verification_status === 'unverified').length;
+      setVerifyMessage(`Verified ${allResults.length} question(s): ${matchCount} match, ${mismatchCount} mismatch, ${unverifiedCount} unverified.`);
+    } catch (e) {
+      setVerifyMessage('Verification failed: ' + (e.message || String(e)));
+    } finally {
+      setVerifying(false);
+    }
   };
 
   // Maps a draft_questions table row (from the PDF import pipeline) into the same
@@ -3110,7 +3187,7 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
     if (!showAllBatches && allBatches.length === 0) {
       _supabase
         .from('import_batches')
-        .select('id, source_label, original_test, status, started_at, questions_extracted')
+        .select('id, source_label, original_test, status, started_at, questions_extracted, source_pdf_path')
         .in('status', ['completed', 'needs_attention'])
         .order('started_at', { ascending: false })
         .then(({ data }) => setAllBatches(data || []));
@@ -3184,9 +3261,8 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
 
     const ext = (resized.name.split('.').pop() || 'png').toLowerCase();
     const path = `draft-${rowKey}/diagram-${Date.now()}.${ext}`;
-    const { error } = await _supabase.storage
-      .from('question-images')
-      .upload(path, resized, { upsert: true, contentType: resized.type });
+    const { error } = await uploadWithSessionRetry('question-images', path, resized,
+      { upsert: true, contentType: resized.type });
 
     updateRow(rowKey, '_imageUploading', false);
     if (error) {
@@ -3310,9 +3386,8 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
         }
         const ext = (resizedImage.name.split('.').pop() || 'png').toLowerCase();
         const path = `${id}/question-${id}-${Date.now()}.${ext}`;
-        const { error: uploadErr } = await _supabase.storage
-          .from('question-images')
-          .upload(path, resizedImage, { upsert: true, contentType: resizedImage.type });
+        const { error: uploadErr } = await uploadWithSessionRetry('question-images', path, resizedImage,
+          { upsert: true, contentType: resizedImage.type });
         if (uploadErr) {
           setPublishing(false);
           setPublishMessage(`"${r.title || 'Untitled'}": image upload failed — ${uploadErr.message}`);
@@ -3362,6 +3437,35 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
       idByKey[r._key] != null ? { ...r, _status: 'published', id: idByKey[r._key] } : r
     ));
     setPublishMessage(`Published ${rowsToUpsert.length} question(s).`);
+
+    // Rows with no _draftId came from a manually-loaded JSON, not the automatic
+    // PDF pipeline, so there's no import_batches row tracking them anywhere --
+    // write one now purely as a publish receipt so it shows up under "View all
+    // past imports" instead of leaving no trace at all. notified_at is set
+    // immediately since the admin just reviewed and published this themselves.
+    const manualRows = approved.filter(r => !r._draftId);
+    if (manualRows.length) {
+      const label = manualRows[0].original_test || manualRows[0].source || 'Manual import';
+      const now = new Date().toISOString();
+      await _supabase.from('import_batches').insert({
+        source_label: label,
+        original_test: label,
+        status: 'completed',
+        questions_extracted: manualRows.length,
+        started_at: now,
+        finished_at: now,
+        notified_at: now,
+        created_by: authUser?.id || null,
+      });
+      if (showAllBatches) {
+        _supabase
+          .from('import_batches')
+          .select('id, source_label, original_test, status, started_at, questions_extracted, source_pdf_path')
+          .in('status', ['completed', 'needs_attention'])
+          .order('started_at', { ascending: false })
+          .then(({ data }) => setAllBatches(data || []));
+      }
+    }
   };
 
   const isAdmin = authUser && ADMIN_EMAILS.includes(authUser.email || '');
@@ -3449,15 +3553,17 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{b.source_label || b.original_test || b.id}</p>
                       <p className="text-xs text-slate-400 dark:text-slate-500">
-                        {b.status === 'needs_attention' ? '⚠ needs attention' : '✓ completed'} · {b.questions_extracted ?? '?'} question(s)
+                        {b.source_pdf_path == null ? 'manual extraction' : (b.status === 'needs_attention' ? '⚠ needs attention' : '✓ completed')} · {b.questions_extracted ?? '?'} question(s)
                         {b.started_at ? ` · ${new Date(b.started_at).toLocaleDateString()}` : ''}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <button onClick={() => loadBatchForReview(b.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10">
-                        Review
-                      </button>
+                      {b.source_pdf_path != null && (
+                        <button onClick={() => loadBatchForReview(b.id)}
+                          className="px-3 py-1.5 rounded-lg text-xs font-bold border border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10">
+                          Review
+                        </button>
+                      )}
                       <button onClick={() => deleteBatch(b.id, b.source_label || b.original_test || b.id)}
                         className="px-3 py-1.5 rounded-lg text-xs font-bold border border-rose-300 dark:border-rose-700 text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
                         Delete
@@ -3536,12 +3642,18 @@ function ReviewImportsPanel({ authUser, onBatchReviewed }) {
             {counts.published > 0 && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400">{counts.published} published</span>}
             {counts.mismatch > 0 && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400">⚠ {counts.mismatch} answer key mismatch{counts.mismatch === 1 ? '' : 'es'}</span>}
             {counts.needsImage > 0 && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400">⚠ {counts.needsImage} needs diagram</span>}
+            <button onClick={verifyDraftRows} disabled={verifying || publishing}
+              title="Spend a small amount of API credit re-solving each question once and flagging any answer that doesn't match"
+              className="ml-auto px-4 py-2 rounded-lg text-sm font-bold border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40">
+              {verifying ? 'Verifying…' : 'Verify Answers'}
+            </button>
             <button onClick={publishApproved} disabled={publishing || counts.approved === 0}
-              className="ml-auto px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white">
+              className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white">
               {publishing ? 'Publishing…' : `Publish Approved (${counts.approved})`}
             </button>
           </div>
         )}
+        {verifyMessage && <p className={`mt-3 text-sm ${/failed/i.test(verifyMessage) ? 'text-rose-600 dark:text-rose-400' : 'text-slate-600 dark:text-slate-300'}`}>{verifyMessage}</p>}
         {publishMessage && <p className={`mt-3 text-sm ${publishMessage.startsWith('Published') ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{publishMessage}</p>}
       </div>
 
