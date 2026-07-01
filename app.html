@@ -73,12 +73,13 @@ const fmtTime = ms => {
   return `${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
 };
 
-const SOURCE_TYPES = ['All Types', 'TMSCA', 'District', 'Region', 'State'];
+const SOURCE_TYPES = ['All Types', 'TMSCA', 'Invitationals', 'District', 'Region', 'State'];
 
 const getSourceType = (source) => {
   if (!source) return '';
   const s = source.toLowerCase();
-  if (s.includes('tmsca')) return 'TMSCA';
+  if (s.includes('tmsca') || s.includes('hsma')) return 'TMSCA';
+  if (s.includes('invitational')) return 'Invitationals';
   if (s.includes('district')) return 'District';
   if (s.includes('region')) return 'Region';
   if (s.includes('state')) return 'State';
